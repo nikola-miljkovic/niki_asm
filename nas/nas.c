@@ -13,7 +13,8 @@
 #include "parser/parser.h"
 
 /* Entry-point */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 #if DEBUG
     printf("NOTE: Debugging enabled!\n");
 #endif
@@ -50,7 +51,14 @@ int main(int argc, char *argv[]) {
     printf("DEBUG: Parsing file '%s'\n", input_file);
 #endif
 
-    parse_file(fp_input);
+    line_content_t program_lines[MAX_PROGRAM_SIZE];
+    int parse_status = parse_file(fp_input, program_lines, MAX_PROGRAM_SIZE);
+    ASSERT_AND_EXIT(parse_status < 0, "ERROR: Compilation aborted.\n");
+
+    struct symtable_t* symtable = symtable_create();
+    symtable_add_symbol(symtable, SECTION_NAME_TEXT, SYMBOL_SECTION_TEXT, SYMBOL_SCOPE_LOCAL, SYMBOL_TYPE_SECTION, 0, 0);
+    symtable_add_symbol(symtable, SECTION_NAME_BSS, SYMBOL_SECTION_BSS, SYMBOL_SCOPE_LOCAL, SYMBOL_TYPE_SECTION, 0, 0);
+    symtable_add_symbol(symtable, SECTION_NAME_DATA, SYMBOL_SECTION_DATA, SYMBOL_SCOPE_LOCAL, SYMBOL_TYPE_SECTION, 0, 0);
 
     fclose(fp_output);
     fclose(fp_input);

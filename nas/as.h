@@ -18,6 +18,9 @@
  * .skip        (param)
  */
 
+#define SECTION_NAME_TEXT   "text"
+#define SECTION_NAME_DATA   "data"
+#define SECTION_NAME_BSS    "bss"
 
 enum symbol_section {
     SYMBOL_SECTION_TEXT,

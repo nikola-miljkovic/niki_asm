@@ -4,7 +4,8 @@
 #include "as.h"
 
 struct symtable_t*
-symtable_create() {
+symtable_create()
+{
     struct symtable_t* symtable = malloc(sizeof(struct symtable_t));
     symtable->value = NULL;
     symtable->next = NULL;
@@ -12,7 +13,8 @@ symtable_create() {
 }
 
 void
-symtable_destroy(struct symtable_t **symtable_ptr) {
+symtable_destroy(struct symtable_t **symtable_ptr)
+{
     struct symtable_t* element = *symtable_ptr;
     struct symtable_t* next_element = NULL;
 
@@ -38,7 +40,8 @@ symtable_add_symbol(
         uint8_t scope,
         uint8_t type,
         uint32_t offset,
-        uint32_t size) {
+        uint32_t size)
+{
     struct symtable_t* last_element = t;
     struct symtable_t* new_element = NULL;
 
