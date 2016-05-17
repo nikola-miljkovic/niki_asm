@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 
+#define INSTRUCTION_SIZE 4
 /**
  * 4 byte union that holds all possible instruction variations, for easy read/write.
  */

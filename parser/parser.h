@@ -2,6 +2,7 @@
 #define NIKI_ASM_PARSER_H
 
 #include <stdio.h>
+#include <stdint.h>
 
 #define MAX_LINE_SIZE               1024
 #define MAX_PROGRAM_SIZE            10000

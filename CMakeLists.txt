@@ -33,7 +33,7 @@ if(DOXYGEN_FOUND)
             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_INPUT}
             COMMAND ${CMAKE_COMMAND} -E echo "Done."
             WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-            )
+    )
 
 endif(DOXYGEN_FOUND)
 

@@ -19,10 +19,6 @@ parse_file(FILE *fp, line_content_t *program_lines, size_t program_lines_length)
         if (line_number >= program_lines_length)
             return -1;
 
-        label_status = -1;
-        directive_status = -1;
-        instruction_status = -1;
-
         program_lines[line_number].type = LINE_TYPE_UNDEFINED;
 
 #if DEBUG
@@ -202,6 +198,7 @@ read_instruction(const char *line, line_content_t *line_content)
 
 int isdot(int v) { return v == '.'; }
 int iscoma(int v) { return v == ','; }
+
 
 
 
