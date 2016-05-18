@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <parser/parser.h>
+#include <parser/string_util.h>
 
 #include "nas.h"
 #include "instruction.h"
@@ -142,6 +143,7 @@ int main(int argc, char *argv[])
             {
                 size = INSTRUCTION_SIZE;
                 location_counter[current_section] += size;
+                get_instruction(&program_lines[i]);
             } break;
             default:
                 break;

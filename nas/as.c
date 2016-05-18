@@ -2,8 +2,21 @@
 #include <string.h>
 #include <parser/parser.h>
 #include <ctype.h>
+#include <parser/string_util.h>
 
 #include "as.h"
+#include "instruction.h"
+
+static const char* condition_info[] = {
+        "eq",
+        "ne",
+        "gt",
+        "ge",
+        "lt",
+        "le",
+        "unused",
+        "",
+};
 
 struct symtable_t*
 symtable_create()
@@ -138,7 +151,21 @@ union inst_t
 get_instruction(const line_content_t* line_content) {
     union inst_t instruction;
 
+    read_operation(&instruction, line_content->name);
+
     return instruction;
+}
+
+void read_operation(union inst_t* instruction_ptr, const char *name_str) {
+    for (uint32_t i = 0; i < OPCODES_END; i += 1) {
+        for (uint32_t operation = 0; operation < OPERATION_CONDITION_END; operation += 1) {
+            if (strutil_consists_of(name_str, instruction_info[i].name, condition_info[operation])) {
+                instruction_ptr->instruction.opcode = instruction_info[i].opcode;
+                instruction_ptr->instruction.cf = instruction_info[i].cf;
+                instruction_ptr->instruction.condition = operation;
+            }
+        }
+    }
 }
 
 argument_info_t
@@ -171,9 +198,13 @@ read_argument(char* arg_str) {
         int32_t imm_val = atoi(arg_str);
         return (argument_info_t){ imm_val, ARGUMENT_TYPE_IMMEDIATE };
     }
-    // check if argument is symbolname or extra func
+    // check if argument is special register, symbolname or extra func
     //
     else {
+        argument_info_t reg = check_register(arg_str);
+        if (reg.type == ARGUMENT_TYPE_REGISTER)
+            return reg;
+
         // check if argument is postinc preinc postdec predec
         //
         argument_info_t extra = check_extra(arg_str);
@@ -196,12 +227,26 @@ ret_error:
 
 argument_info_t
 check_extra(char* arg_str) {
-    if (strcmp(arg_str, EXTRA_FUNCTION_POST_INC) == 0)
+    if (strutil_is_equal(arg_str, EXTRA_FUNCTION_POST_INC))
         return (argument_info_t){ EXTRA_REG_FUNCTION_POST_INC, ARGUMENT_TYPE_EXTRA };
-    if (strcmp(arg_str, EXTRA_FUNCTION_PRE_INC) == 0)
+    if (strutil_is_equal(arg_str, EXTRA_FUNCTION_PRE_INC))
         return (argument_info_t){ EXTRA_REG_FUNCTION_PRE_INC, ARGUMENT_TYPE_EXTRA };
-    if (strcmp(arg_str, EXTRA_FUNCTION_PRE_DEC) == 0)
+    if (strutil_is_equal(arg_str, EXTRA_FUNCTION_PRE_DEC))
         return (argument_info_t){ EXTRA_REG_FUNCTION_PRE_DEC, ARGUMENT_TYPE_EXTRA };
-    if (strcmp(arg_str, EXTRA_FUNCTION_POST_DEC) == 0)
+    if (strutil_is_equal(arg_str, EXTRA_FUNCTION_POST_DEC))
         return (argument_info_t){ EXTRA_REG_FUNCTION_POST_DEC, ARGUMENT_TYPE_EXTRA };
+    return (argument_info_t){ 0, ARGUMENT_TYPE_ERROR };
+}
+
+argument_info_t
+check_register(char* arg_str) {
+    if (strutil_is_equal(arg_str, AS_REGISTER_PC_STR))
+        return (argument_info_t){ AS_REGISTER_PC, ARGUMENT_TYPE_REGISTER };
+    if (strutil_is_equal(arg_str, AS_REGISTER_SP_STR))
+        return (argument_info_t){ AS_REGISTER_SP, ARGUMENT_TYPE_REGISTER };
+    if (strutil_is_equal(arg_str, AS_REGISTER_LR_STR))
+        return (argument_info_t){ AS_REGISTER_LR, ARGUMENT_TYPE_REGISTER };
+    if (strutil_is_equal(arg_str, AS_REGISTER_PSW_STR))
+        return (argument_info_t){ AS_REGISTER_PSW, ARGUMENT_TYPE_REGISTER };
+    return (argument_info_t){ 0, ARGUMENT_TYPE_ERROR };
 }

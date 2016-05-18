@@ -5,7 +5,7 @@
 #include <string.h>
 #include "string_util.h"
 
-int32_t strutil_is_equal(char *str1, char *str2) {
+int32_t strutil_is_equal(const char *str1, const char *str2) {
     size_t len = strlen(str1);
     if (len != strlen(str2))
         return 0;
@@ -18,13 +18,26 @@ int32_t strutil_is_equal(char *str1, char *str2) {
     return 1;
 }
 
-int32_t strutil_consists_of(char *str1, char *part1, char *part2) {
+int32_t strutil_consists_of(const char *str1, const char *part1, const char *part2) {
     size_t len = strlen(str1);
-    if (len != (strlen(part1) + strlen(part2))) {
+    size_t part1_len = strlen(part1);
+
+    if (len != (part1_len + strlen(part2))) {
         return 0;
     }
-    return 0;
+
+    char current_character;
+    for (int i = 0; i < len; i += 1) {
+        current_character = i < part1_len ? part1[i] : part2[i - part1_len];
+
+        if (str1[i] != current_character)
+            return 0;
+    }
+
+    return 1;
 }
+
+
 
 
 

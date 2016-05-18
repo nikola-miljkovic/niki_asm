@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // fast equal check
-int32_t strutil_is_equal(char* str1, char* str2);
-int32_t strutil_consists_of(char* str1, char* part1, char* part2);
+int32_t strutil_is_equal(const char* str1, const char* str2);
+int32_t strutil_consists_of(const char* str1, const char* part1, const char* part2);
 
 #endif //NIKI_ASM_STRING_UTIL_H

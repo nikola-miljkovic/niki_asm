@@ -33,10 +33,10 @@
 #define EXTRA_FUNCTION_PRE_DEC "predec"
 #define EXTRA_FUNCTION_POST_DEC "postdec"
 
-#define PC_REGISTER_STR "pc"
-#define LR_REGISTER_STR "lr"
-#define SP_REGISTER_STR "sp"
-#define PSW_REGISTER_STR "psw"
+#define AS_REGISTER_PC_STR "pc"
+#define AS_REGISTER_LR_STR "lr"
+#define AS_REGISTER_SP_STR "sp"
+#define AS_REGISTER_PSW_STR "psw"
 
 typedef struct {
     char        directive[MAX_LABEL_SIZE];
@@ -75,40 +75,35 @@ typedef struct {
     uint32_t    type; // value -1 means its variable based on arguments
 } argument_info_t;
 
-/*
-static const char* instruction_strings[] = {
-    "int",
-    "add",
-    "sub",
-    "mul",
-    "div",
-    "cmp",
-    "and",
-    "or",
-    "not",
-    "test",
-    "ldr",
-    "str",
-    "call",
-    "in",
-    "out",
-    "mov",
-    "shr",
-    "shl",
-    "ldch",
-    "ldcl",
-};
+typedef struct {
+    char        name[MAX_LABEL_SIZE];
+    uint32_t    opcode:31;
+    uint32_t    cf:1;
+} instruction_info_t;
 
-static const char* condition_strings[] = {
-    "eq",
-    "ne",
-    "gt",
-    "ge",
-    "lt",
-    "le",
-    "unused",
-    "unused",
-};*/
+const static instruction_info_t instruction_info[] = {
+    /* name     opcode      cf */
+    { "int",    OP_INT,     0 },
+    { "add",    OP_ADD,     0 },
+    { "sub",    OP_SUB,     0 },
+    { "mul",    OP_MUL,     0 },
+    { "div",    OP_DIV,     0 },
+    { "cmp",    OP_CMP,     0 },
+    { "and",    OP_AND,     0 },
+    { "or",     OP_OR,      0 },
+    { "not",    OP_NOT,     0 },
+    { "test",   OP_TEST,    0 },
+    { "ldr",    OP_LDR,     0 },
+    { "str",    OP_STR,     0 },
+    { "call",   OP_CALL,    0 },
+    { "in",     OP_IN,      0 },
+    { "out",    OP_OUT,     0 },
+    { "mov",    OP_MOV,     0 },
+    { "shr",    OP_SHR,     0 },
+    { "shl",    OP_SHL,     0 },
+    { "ldch",   OP_LDCH,    0 },
+    { "ldcl",   OP_LDCL,    0 },
+};
 
 enum symbol_section {
     SYMBOL_SECTION_TEXT,
@@ -165,7 +160,9 @@ struct symdata_t* symtable_get_symdata_by_name(struct symtable_t* symtable, char
 void symtable_destroy(struct symtable_t **symtable_ptr);
 int32_t get_directive_size(const line_content_t* line_content);
 union inst_t get_instruction(const line_content_t* line_content);
+void read_operation(union inst_t* instruction_ptr, const char* name_str);
 argument_info_t read_argument(char* arg_str);
+argument_info_t check_register(char* arg_str);
 argument_info_t check_extra(char* arg_str);
 
 #endif //NIKI_ASM_AS_H

@@ -7,11 +7,10 @@ include_directories(.)
 
 set(SOURCE_FILES
         nas/instruction.h
-        nas/nas.c
-        nas/nas.h
-        parser/parser.c
-        parser/parser.h
-        nas/as.h nas/as.c parser/string_util.c parser/string_util.h)
+        nas/nas.c nas/nas.h
+        parser/parser.c parser/parser.h
+        nas/as.h nas/as.c
+        parser/string_util.c parser/string_util.h)
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_INPUT ${SOURCE_FILES})

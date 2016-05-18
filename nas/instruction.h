@@ -170,7 +170,7 @@ enum opcodes {
     OPCODES_END = 0x10,
 };
 
-enum operation_conditions {
+enum operation_condition {
     EQ = 00,
     NE = 01,
     GT = 02,
@@ -179,7 +179,20 @@ enum operation_conditions {
     LE = 05,
     UNUSED = 06,
     NONE = 07,
-    OPERATION_CONDITIONS_END = 010,
+    OPERATION_CONDITION_END = 010,
+};
+
+enum as_register {
+    AS_REGISTER_GENERAL_BEGIN = 0x00,
+
+    /* offset -> 15 */
+
+    AS_REGISTER_GENERAL_END = 0xA + 1,
+
+    AS_REGISTER_PC  = 0x10,
+    AS_REGISTER_SP  = 0x20,
+    AS_REGISTER_LR  = 0x30,
+    AS_REGISTER_PSW = 0x40,
 };
 
 #endif //NIKI_ASM_INSTRUCTION_H
