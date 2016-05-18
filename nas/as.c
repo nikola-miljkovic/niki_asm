@@ -163,6 +163,7 @@ void read_operation(union inst_t* instruction_ptr, const char *name_str) {
                 instruction_ptr->instruction.opcode = instruction_info[i].opcode;
                 instruction_ptr->instruction.cf = instruction_info[i].cf;
                 instruction_ptr->instruction.condition = operation;
+                return;
             }
         }
     }
