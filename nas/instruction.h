@@ -157,16 +157,17 @@ enum opcodes {
     OP_OR	 = 0x7,
     OP_NOT	 = 0x8,
     OP_TEST  = 0x9,
-    OP_LDR = 0x10,
-    OP_STR	= 0x11,
-    OP_CALL  = 0x12,
-    OP_IN = 0x13,
-    OP_OUT = 0x13,
-    OP_MOV = 0x14,
-    OP_SHR = 0x14,
-    OP_SHL = 0x14,
-    OP_LDCH = 0x15,
-    OP_LDCL = 0x15,
+    OP_LDR = 0xA,
+    OP_STR	= 0xB,
+    OP_CALL  = 0xC,
+    OP_IN = 0xD,
+    OP_OUT = 0xD,
+    OP_MOV = 0xE,
+    OP_SHR = 0xE,
+    OP_SHL = 0xE,
+    OP_LDCH = 0xF,
+    OP_LDCL = 0xF,
+    OPCODES_END = 0x10,
 };
 
 enum operation_conditions {
@@ -176,8 +177,9 @@ enum operation_conditions {
     GE = 03,
     LT = 04,
     LE = 05,
-    HI = 06,
-    HS = 07,
+    UNUSED = 06,
+    NONE = 07,
+    OPERATION_CONDITIONS_END = 010,
 };
 
 #endif //NIKI_ASM_INSTRUCTION_H

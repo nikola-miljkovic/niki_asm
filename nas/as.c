@@ -133,6 +133,7 @@ int32_t get_directive_size(const line_content_t* line_content) {
     return 0;
 }
 
+
 union inst_t
 get_instruction(const line_content_t* line_content) {
     union inst_t instruction;
@@ -140,21 +141,67 @@ get_instruction(const line_content_t* line_content) {
     return instruction;
 }
 
-// check if it is valid register string
-// if so return reg_number else return -1
-// format is R|r<0-15>\0
-int32_t get_register(char *arg) {
-    if ((arg[0] == 'r' || arg[0] == 'R') && strlen(arg) > 1) {
-        for (int i = 1; i < strlen(arg); i += 1) {
-            if (!isdigit(arg[i])) {
-                return -1;
+argument_info_t
+read_argument(char* arg_str) {
+    int i = 0;
+    // check if it is valid register string
+    // if so return reg_number else return -1
+    // format is R|r<0-15>\0
+    //
+    if ((arg_str[0] == 'r' || arg_str[0] == 'R') && strlen(arg_str) > 1) {
+        for (i = 1; i < strlen(arg_str); i += 1) {
+            if (!isdigit(arg_str[i])) {
+                goto ret_error;
             }
         }
-        int32_t reg_num = atoi(arg + 1);
+        int32_t reg_num = atoi(arg_str + 1);
         if (reg_num > 15 || reg_num < 0)
-            return -1;
-        return reg_num;
+            goto ret_error;
+        return (argument_info_t){ reg_num, ARGUMENT_TYPE_REGISTER };
     }
+    // check if argument is immediate value, +|-(num)|(num)
+    //
+    else if (((arg_str[0] == '+' || arg_str[0] == '-') && strlen(arg_str) > 1)
+            || isdigit(arg_str[0])){
+        for (i = 1; i < strlen(arg_str); i += 1) {
+            if (!isdigit(arg_str[i])) {
+                goto ret_error;
+            }
+        }
+        int32_t imm_val = atoi(arg_str);
+        return (argument_info_t){ imm_val, ARGUMENT_TYPE_IMMEDIATE };
+    }
+    // check if argument is symbolname or extra func
+    //
+    else {
+        // check if argument is postinc preinc postdec predec
+        //
+        argument_info_t extra = check_extra(arg_str);
+        if (extra.type == ARGUMENT_TYPE_EXTRA)
+            return extra;
 
-    return -1;
+        // check if argument is symbolname
+        //
+        for (i = 0; i < strlen(arg_str); i += 1) {
+            if (!isalnum(arg_str[i])) {
+                goto ret_error;
+            }
+        }
+        // return type as symbol, and let caller handle it
+        return (argument_info_t){ 0, ARGUMENT_TYPE_SYMBOL };
+    }
+ret_error:
+    return (argument_info_t){ 0, ARGUMENT_TYPE_ERROR };
+}
+
+argument_info_t
+check_extra(char* arg_str) {
+    if (strcmp(arg_str, EXTRA_FUNCTION_POST_INC) == 0)
+        return (argument_info_t){ EXTRA_REG_FUNCTION_POST_INC, ARGUMENT_TYPE_EXTRA };
+    if (strcmp(arg_str, EXTRA_FUNCTION_PRE_INC) == 0)
+        return (argument_info_t){ EXTRA_REG_FUNCTION_PRE_INC, ARGUMENT_TYPE_EXTRA };
+    if (strcmp(arg_str, EXTRA_FUNCTION_PRE_DEC) == 0)
+        return (argument_info_t){ EXTRA_REG_FUNCTION_PRE_DEC, ARGUMENT_TYPE_EXTRA };
+    if (strcmp(arg_str, EXTRA_FUNCTION_POST_DEC) == 0)
+        return (argument_info_t){ EXTRA_REG_FUNCTION_POST_DEC, ARGUMENT_TYPE_EXTRA };
 }
