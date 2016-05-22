@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #define INSTRUCTION_SIZE 4
+
 /**
  * 4 byte union that holds all possible instruction variations, for easy read/write.
  */
@@ -17,7 +18,7 @@ union inst_t {
         uint32_t off:8;
         uint32_t src:4;
         uint32_t nu:20;
-    } int_op_t;
+    } int_op;
 
     struct {
         uint32_t off:8;
@@ -158,7 +159,7 @@ enum opcodes {
     OP_NOT	 = 0x8,
     OP_TEST  = 0x9,
     OP_LDR = 0xA,
-    OP_STR	= 0xB,
+    OP_STR	= 0xA,
     OP_CALL  = 0xC,
     OP_IN = 0xD,
     OP_OUT = 0xD,

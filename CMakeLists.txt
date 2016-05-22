@@ -10,7 +10,7 @@ set(SOURCE_FILES
         nas/nas.c nas/nas.h
         parser/parser.c parser/parser.h
         nas/as.h nas/as.c
-        parser/string_util.c parser/string_util.h)
+        parser/string_util.c parser/string_util.h nas/reloc.c nas/reloc.h nas/symbol.c nas/symbol.c nas/symbol.h)
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_INPUT ${SOURCE_FILES})

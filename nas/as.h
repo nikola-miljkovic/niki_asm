@@ -5,6 +5,8 @@
 #include <parser/parser.h>
 #include "instruction.h"
 
+#define READ_ARGS(n) for (int i = 0; i < n; i += 1) arg[i] = read_argument(line_content->args[i]);
+
 /*
  * Supported directives:
  *
@@ -27,6 +29,9 @@
 
 #define DIRECTIVE_NAME_ALIGN    "align"
 #define DIRECTIVE_NAME_SKIP     "skip"
+#define DIRECTIVE_NAME_EXTERN   "extern"
+#define DIRECTIVE_NAME_PUBLIC   "public"
+#define DIRECTIVE_NAME_GLOBAL   "global"
 
 #define EXTRA_FUNCTION_PRE_INC "preinc"
 #define EXTRA_FUNCTION_POST_INC "postinc"
@@ -84,85 +89,38 @@ typedef struct {
 const static instruction_info_t instruction_info[] = {
     /* name     opcode      cf */
     { "int",    OP_INT,     0 },
-    { "add",    OP_ADD,     0 },
-    { "sub",    OP_SUB,     0 },
-    { "mul",    OP_MUL,     0 },
-    { "div",    OP_DIV,     0 },
-    { "cmp",    OP_CMP,     0 },
-    { "and",    OP_AND,     0 },
-    { "or",     OP_OR,      0 },
-    { "not",    OP_NOT,     0 },
-    { "test",   OP_TEST,    0 },
+    { "add",    OP_ADD,     1 },
+    { "sub",    OP_SUB,     1 },
+    { "mul",    OP_MUL,     1 },
+    { "div",    OP_DIV,     1 },
+    { "cmp",    OP_CMP,     1 },
+    { "and",    OP_AND,     1 },
+    { "or",     OP_OR,      1 },
+    { "not",    OP_NOT,     1 },
+    { "test",   OP_TEST,    1 },
     { "ldr",    OP_LDR,     0 },
     { "str",    OP_STR,     0 },
     { "call",   OP_CALL,    0 },
     { "in",     OP_IN,      0 },
     { "out",    OP_OUT,     0 },
-    { "mov",    OP_MOV,     0 },
-    { "shr",    OP_SHR,     0 },
-    { "shl",    OP_SHL,     0 },
+    { "mov",    OP_MOV,     1 },
+    { "shr",    OP_SHR,     1 },
+    { "shl",    OP_SHL,     1 },
     { "ldch",   OP_LDCH,    0 },
     { "ldcl",   OP_LDCL,    0 },
 };
 
-enum symbol_section {
-    SYMBOL_SECTION_TEXT,
-    SYMBOL_SECTION_DATA,
-    SYMBOL_SECTION_BSS,
-    SYMBOL_SECTION_NONE,
-    SYMBOL_SECTION_END,
+struct elf_context {
+    struct symtable_t*        symtable;
+    struct reloc_table_t*     reloctable;
+    uint32_t                  location_counter;
 };
 
-enum symbol_scope {
-    SYMBOL_SCOPE_GLOBAL,
-    SYMBOL_SCOPE_LOCAL,
-};
-
-enum symbol_type {
-    SYMBOL_TYPE_NOTYPE,
-    SYMBOL_TYPE_SECTION,
-    SYMBOL_TYPE_OBJECT,
-    SYMBOL_TYPE_DATA,
-    SYMBOL_TYPE_FUNCTION,
-};
-
-struct symdata_t {
-    uint32_t    index;
-    char        name[MAX_LABEL_SIZE];
-    uint8_t     section;
-    uint8_t     scope;
-    uint8_t     type;
-    uint32_t    offset;
-    uint32_t    size;
-};
-
-struct symtable_t {
-    struct symdata_t* value;
-    struct symtable_t* next;
-};
-
-/* creates empty symtable */
-struct symtable_t* symtable_create();
-
-/* adds symbol to symtable returns -1 if error occurred(symbol exists) */
-int symtable_add_symbol(
-    struct symtable_t *t,
-    char *name,
-    uint8_t section,
-    uint8_t scope,
-    uint8_t type,
-    uint32_t offset,
-    uint32_t size
-);
-
-struct symdata_t* symtable_get_symdata(struct symtable_t* symtable, uint32_t index);
-struct symdata_t* symtable_get_symdata_by_name(struct symtable_t* symtable, char* name);
-void symtable_destroy(struct symtable_t **symtable_ptr);
 int32_t get_directive_size(const line_content_t* line_content);
-union inst_t get_instruction(const line_content_t* line_content);
+union inst_t get_instruction(struct elf_context *context, const line_content_t *line_content);
 void read_operation(union inst_t* instruction_ptr, const char* name_str);
-argument_info_t read_argument(char* arg_str);
-argument_info_t check_register(char* arg_str);
-argument_info_t check_extra(char* arg_str);
+argument_info_t read_argument(const char* arg_str);
+argument_info_t check_register(const char* arg_str);
+argument_info_t check_extra(const char* arg_str);
 
 #endif //NIKI_ASM_AS_H

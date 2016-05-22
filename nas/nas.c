@@ -13,6 +13,8 @@
 #include "instruction.h"
 #include "as.h"
 #include "parser/parser.h"
+#include "symbol.h"
+#include "reloc.h"
 
 /* Entry-point */
 int main(int argc, char *argv[])
@@ -62,6 +64,14 @@ int main(int argc, char *argv[])
     symtable_add_symbol(symtable, SECTION_NAME_BSS, SYMBOL_SECTION_BSS, SYMBOL_SCOPE_LOCAL, SYMBOL_TYPE_SECTION, 0, 0);
     symtable_add_symbol(symtable, SECTION_NAME_DATA, SYMBOL_SECTION_DATA, SYMBOL_SCOPE_LOCAL, SYMBOL_TYPE_SECTION, 0, 0);
 
+    // create empty reloc table
+    struct reloc_table_t* reloc = reloc_table_create();
+
+    // create elf context
+    struct elf_context context = {
+            symtable, reloc
+    };
+
     uint8_t current_section = SYMBOL_SECTION_NONE;
     uint32_t location_counter[SYMBOL_SECTION_END] = { 0 };
     int32_t size = 0;
@@ -75,12 +85,23 @@ int main(int argc, char *argv[])
                 ASSERT_AND_EXIT(size < 0, "ERROR: Compilation failed at line (%d): Unknown directive '%s'\n", i, program_lines[i].name);
                 if (size == 0) {
                     // additional checks
-                    if (strcmp(program_lines[i].name, SECTION_NAME_TEXT) == 0)
+                    if (strutil_is_equal(program_lines[i].name, SECTION_NAME_TEXT))
                         current_section = SYMBOL_SECTION_TEXT;
-                    else if (strcmp(program_lines[i].name, SECTION_NAME_DATA) == 0)
+                    else if (strutil_is_equal(program_lines[i].name, SECTION_NAME_DATA))
                         current_section = SYMBOL_SECTION_DATA;
-                    else if (strcmp(program_lines[i].name, SECTION_NAME_BSS) == 0)
+                    else if (strutil_is_equal(program_lines[i].name, SECTION_NAME_BSS))
                         current_section = SYMBOL_SECTION_BSS;
+                    else if (strutil_is_equal(program_lines[i].name, DIRECTIVE_NAME_EXTERN)) {
+                        // extern symbol
+                        int status = symtable_add_symbol(symtable, program_lines[i].args[0],
+                                                         SYMBOL_SECTION_NONE, SYMBOL_SCOPE_GLOBAL, SYMBOL_TYPE_EXTERN,
+                                                         0, 0);
+                        if (status < 1) {
+                            // TODO: modify old
+                        }
+                    } else if (strutil_is_equal(program_lines[i].name, DIRECTIVE_NAME_PUBLIC)) {
+                        // TODO: public symbols
+                    }
                 }
 
                 location_counter[current_section] += size;
@@ -96,22 +117,23 @@ int main(int argc, char *argv[])
 
         if (strlen(program_lines[i].label) > 0) {
             int status = symtable_add_symbol(symtable, program_lines[i].label,
-                                             current_section, SYMBOL_SCOPE_LOCAL, SYMBOL_TYPE_SECTION,
+                                             current_section, SYMBOL_SCOPE_LOCAL, SYMBOL_TYPE_DATA,
                                              location_counter[current_section], size > 0 ? (uint32_t)size : 0);
             ASSERT_AND_EXIT(status < 0, "ERROR: Compilation failed at line (%d): Symbol '%s' is already defined\n", i, program_lines[i].label);
         }
     }
 
     // init buffers and reset location counters
-    uint8_t* binary_buffer[SYMBOL_SECTION_END];
+    uintptr_t* binary_buffer[SYMBOL_SECTION_END];
     for (int i = 0; i < SYMBOL_SECTION_END; i++) {
-        binary_buffer[i] = malloc(location_counter[i]);
+        binary_buffer[i] = malloc(location_counter[i]*sizeof(uint8_t));
         location_counter[i] = 0;
     }
     current_section = SYMBOL_SECTION_NONE;
 
     // second compilation iteration
     for (int i = 0; i < MAX_PROGRAM_SIZE && strcmp(program_lines[i].name, SECTION_NAME_END) != 0; i++) {
+        context.location_counter = location_counter[current_section];
         switch (program_lines[i].type) {
             case LINE_TYPE_DIRECTIVE:
             {
@@ -134,21 +156,27 @@ int main(int argc, char *argv[])
                     } else {
                         arg = atoi(program_lines[i].args[0]);
                     }
-                    memcpy(binary_buffer[current_section] + location_counter[current_section], &arg, (size_t)size);
-
+                    memcpy(binary_buffer[current_section] + location_counter[current_section],
+                           &arg, (size_t)size);
                     location_counter[current_section] += size;
                 }
             } break;
             case LINE_TYPE_INSTRUCTION:
             {
                 size = INSTRUCTION_SIZE;
+                union inst_t instruction = get_instruction(&context, &program_lines[i]);
+                memcpy(binary_buffer[current_section] + location_counter[current_section],
+                       &instruction, (size_t)size);
                 location_counter[current_section] += size;
-                get_instruction(&program_lines[i]);
             } break;
             default:
                 break;
         }
     }
+
+    // create symtable buffer and dump data to it
+    uint8_t* symtable_buffer = malloc(symtable->length * sizeof(struct symdata_t));
+    symtable_dump_to_buffer(symtable, symtable_buffer);
 
     fclose(fp_output);
     fclose(fp_input);
