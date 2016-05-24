@@ -43,10 +43,10 @@ int32_t get_directive_size(const line_content_t* line_content) {
 }
 
 
-union inst_t
-get_instruction(struct elf_context *context, const line_content_t *line_content) {
-    union inst_t instruction;
-    struct symdata_t* symdata = NULL;
+union instruction
+get_instruction(struct elf_context* context, const line_content_t *line_content) {
+    union instruction instruction;
+    struct sym_entry* symdata = NULL;
     argument_info_t arg[MAX_INSTRUCTON_ARGUMENTS];
 
     read_operation(&instruction, line_content->name);
@@ -158,7 +158,7 @@ get_instruction(struct elf_context *context, const line_content_t *line_content)
     return instruction;
 }
 
-void read_operation(union inst_t* instruction_ptr, const char *name_str) {
+void read_operation(union instruction* instruction_ptr, const char *name_str) {
     for (uint32_t i = 0; i < OPCODES_END; i += 1) {
         for (uint32_t operation = 0; operation < OPERATION_CONDITION_END; operation += 1) {
             if (strutil_consists_of(name_str, instruction_info[i].name, condition_info[operation])) {

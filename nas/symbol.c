@@ -3,23 +3,23 @@
 
 #include "symbol.h"
 
-struct symtable_t*
+struct sym_table*
 symtable_create()
 {
-    struct symtable_t* symtable = malloc(sizeof(struct symtable_t));
+    struct sym_table* symtable = malloc(sizeof(struct sym_table));
 
     symtable->length = 0;
-    symtable->head = malloc(sizeof(struct symtable_node_t));
+    symtable->head = malloc(sizeof(struct sym_node));
     symtable->head->value = NULL;
     symtable->head->next = NULL;
 
     return symtable;
 }
 
-void symtable_destroy(struct symtable_t **symtable_ptr)
+void symtable_destroy(struct sym_table **symtable_ptr)
 {
-    struct symtable_node_t* element = (*symtable_ptr)->head;
-    struct symtable_node_t* next_element = NULL;
+    struct sym_node* element = (*symtable_ptr)->head;
+    struct sym_node* next_element = NULL;
 
     while (element != NULL) {
         // free symbol data first
@@ -37,7 +37,7 @@ void symtable_destroy(struct symtable_t **symtable_ptr)
 
 int
 symtable_add_symbol(
-        struct symtable_t *t,
+        struct sym_table *t,
         char *name,
         uint8_t section,
         uint8_t scope,
@@ -45,13 +45,13 @@ symtable_add_symbol(
         uint32_t offset,
         uint32_t size)
 {
-    struct symtable_node_t* last_element = t->head;
-    struct symtable_node_t* new_element = NULL;
+    struct sym_node* last_element = t->head;
+    struct sym_node* new_element = NULL;
 
     /* check if first element is last element */
     if (last_element->value == NULL) {
         new_element = t->head;
-        new_element->value = malloc(sizeof(struct symdata_t));
+        new_element->value = malloc(sizeof(struct sym_entry));
         new_element->value->index = 0;
         goto write_and_return;
     }
@@ -65,12 +65,12 @@ symtable_add_symbol(
     }
 
     /* create new symtable element, and set last elements next to new element */
-    new_element = malloc(sizeof(struct symtable_t));
+    new_element = malloc(sizeof(struct sym_table));
     last_element->next = new_element;
 
     /* set values of new element */
     new_element->next = NULL;
-    new_element->value = malloc(sizeof(struct symdata_t));
+    new_element->value = malloc(sizeof(struct sym_entry));
     new_element->value->index = last_element->value->index + 1;
 
     // writes all other data and returns success code(0)
@@ -85,9 +85,9 @@ symtable_add_symbol(
     return 0;
 }
 
-struct symdata_t*
-symtable_get_symdata(struct symtable_t* symtable, uint32_t index) {
-    struct symtable_node_t* current = symtable->head;
+struct sym_entry*
+symtable_get_symdata(struct sym_table* symtable, uint32_t index) {
+    struct sym_node* current = symtable->head;
 
     while (current != NULL) {
         if (current->value->index == index) {
@@ -99,9 +99,9 @@ symtable_get_symdata(struct symtable_t* symtable, uint32_t index) {
     return NULL;
 }
 
-struct symdata_t*
-symtable_get_symdata_by_name(struct symtable_t *symtable, const char *name) {
-    struct symtable_node_t* current = symtable->head;
+struct sym_entry*
+symtable_get_symdata_by_name(struct sym_table *symtable, const char *name) {
+    struct sym_node* current = symtable->head;
 
     while (current != NULL) {
         if (strcmp(current->value->name, name) == 0) {
@@ -113,9 +113,9 @@ symtable_get_symdata_by_name(struct symtable_t *symtable, const char *name) {
     return NULL;
 }
 
-void symtable_dump_to_buffer(struct symtable_t* symtable, uint8_t* buffer) {
-    const size_t symdata_size = sizeof(struct symdata_t);
-    struct symtable_node_t* current = symtable->head;
+void symtable_dump_to_buffer(struct sym_table* symtable, uint8_t* buffer) {
+    const size_t symdata_size = sizeof(struct sym_entry);
+    struct sym_node* current = symtable->head;
     uint32_t offset = 0;
 
     while (current != NULL) {

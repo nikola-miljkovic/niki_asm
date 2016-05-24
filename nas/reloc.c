@@ -1,18 +1,21 @@
 #include <stdlib.h>
-#include "reloc.h"
-#include "as.h"
+#include <string.h>
 
-struct reloc_table_t*
+#include "reloc.h"
+
+struct reloc_table*
 reloc_table_create() {
-    struct reloc_table_t* reloctable = malloc(sizeof(struct reloc_table_t));
-    reloctable->next = NULL;
-    reloctable->value = NULL;
+    struct reloc_table* reloctable = malloc(sizeof(struct reloc_table));
+    reloctable->length = 0;
+    reloctable->head = malloc(sizeof(struct reloc_node));
+    reloctable->head->next = NULL;
+    reloctable->head->value = NULL;
     return reloctable;
 }
 
-void reloc_table_destroy(struct reloc_table_t** table) {
-    struct reloc_table_t* element = *table;
-    struct reloc_table_t* next_element = NULL;
+void reloc_table_destroy(struct reloc_table** table) {
+    struct reloc_node* element = (*table)->head;
+    struct reloc_node* next_element = NULL;
 
     while (element != NULL) {
         free(element->value);
@@ -25,12 +28,12 @@ void reloc_table_destroy(struct reloc_table_t** table) {
     *table = NULL;
 }
 
-void reloc_table_add(struct reloc_table_t* table, uint32_t index, uint32_t offset) {
-    struct reloc_table_t* last_element = table;
-    struct reloc_table_t* new_element = NULL;
+void reloc_table_add(struct reloc_table* table, uint32_t index, uint32_t offset) {
+    struct reloc_node* last_element = table->head;
+    struct reloc_node* new_element = NULL;
 
     if (last_element->value == NULL) {
-        new_element = table;
+        new_element = table->head;
         goto write_and_return;
     }
 
@@ -38,18 +41,19 @@ void reloc_table_add(struct reloc_table_t* table, uint32_t index, uint32_t offse
         last_element = last_element->next;
     }
 
-    new_element = malloc(sizeof(struct reloc_table_t));
+    new_element = malloc(sizeof(struct reloc_table));
     last_element->next = new_element;
 
 write_and_return:
-    new_element->value = malloc(sizeof(struct reloc_data_t));
+    new_element->value = malloc(sizeof(struct reloc_entry));
     new_element->value->index = index;
     new_element->value->offset = offset;
+    table->length += 1;
 }
 
 uint32_t
-reloc_table_get_offset(struct reloc_table_t *table, uint32_t index) {
-    struct reloc_table_t* current = table;
+reloc_table_get_offset(struct reloc_table *table, uint32_t index) {
+    struct reloc_node* current = table->head;
 
     while (current != NULL) {
         if (current->value->index == index) {
@@ -61,10 +65,19 @@ reloc_table_get_offset(struct reloc_table_t *table, uint32_t index) {
     return 0;
 }
 
-struct reloc_table_t* reloc_table_create_from_buffer(const uintptr_t* buffer) {
+struct reloc_table* reloc_table_create_from_buffer(uint8_t* buffer) {
     return NULL;
 }
 
-void reloc_table_dump_to_buffer(const struct reloc_table_t* table, uintptr_t* buffer) {
+void reloc_table_dump_to_buffer(const struct reloc_table* table, uint8_t* buffer) {
+    struct reloc_node* current = table->head;
+    const size_t reloc_entry_size = sizeof(struct reloc_entry);
+    uint32_t offset = 0;
 
+    while (current != NULL) {
+        memcpy(buffer + offset, current->value, reloc_entry_size);
+        offset += reloc_entry_size;
+
+        current = current->next;
+    }
 }

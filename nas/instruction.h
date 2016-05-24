@@ -13,7 +13,7 @@
 /**
  * 4 byte union that holds all possible instruction variations, for easy read/write.
  */
-union inst_t {
+union instruction {
     struct {
         uint32_t off:8;
         uint32_t src:4;

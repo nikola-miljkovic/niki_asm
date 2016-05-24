@@ -37,6 +37,11 @@ int32_t strutil_consists_of(const char *str1, const char *part1, const char *par
     return 1;
 }
 
+int32_t strutil_is_empty(const char* str1) {
+    size_t len = strlen(str1);
+    return len > 0;
+}
+
 
 
 

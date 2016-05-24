@@ -8,9 +8,13 @@ include_directories(.)
 set(SOURCE_FILES
         nas/instruction.h
         nas/nas.c nas/nas.h
-        parser/parser.c parser/parser.h
         nas/as.h nas/as.c
-        parser/string_util.c parser/string_util.h nas/reloc.c nas/reloc.h nas/symbol.c nas/symbol.c nas/symbol.h)
+        nas/reloc.c nas/reloc.h
+        nas/symbol.c nas/symbol.h
+
+        parser/parser.c parser/parser.h
+        parser/string_util.c parser/string_util.h
+        nas_run/nas_run.c nas_run/nas_run.h)
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_INPUT ${SOURCE_FILES})
@@ -41,4 +45,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
-add_executable(nas ${SOURCE_FILES})
+add_executable(nas ${SOURCE_FILES} nas_run/nas_run.c nas_run/nas_run.h)

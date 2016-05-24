@@ -46,7 +46,6 @@ parse_file(FILE *fp, line_content_t *program_lines, size_t program_lines_length)
         line_number++;
     }
 
-    printf("NOTE: Compilation successful.");
     return 0;
 }
 

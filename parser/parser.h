@@ -6,7 +6,7 @@
 
 #define MAX_LINE_SIZE               1024
 #define MAX_PROGRAM_SIZE            10000
-#define MAX_INSTRUCTON_ARGUMENTS    3
+#define MAX_INSTRUCTON_ARGUMENTS    4
 #define MAX_LABEL_SIZE              32
 
 #define COMMENT_CHARACTER           ';'

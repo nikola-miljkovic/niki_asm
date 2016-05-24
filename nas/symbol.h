@@ -5,7 +5,6 @@
 #ifndef NIKI_ASM_SYMBOL_H
 #define NIKI_ASM_SYMBOL_H
 
-
 #include <stdint.h>
 #include <parser/parser.h>
 
@@ -29,7 +28,7 @@ enum symbol_type {
     SYMBOL_TYPE_FUNCTION,
 };
 
-struct symdata_t {
+struct sym_entry {
     uint32_t    index;
     char        name[MAX_LABEL_SIZE];
     uint8_t     section;
@@ -39,22 +38,22 @@ struct symdata_t {
     uint32_t    size;
 };
 
-struct symtable_node_t {
-    struct symdata_t* value;
-    struct symtable_node_t* next;
+struct sym_node {
+    struct sym_entry* value;
+    struct sym_node* next;
 };
 
-struct symtable_t {
+struct sym_table {
     uint32_t length;
-    struct symtable_node_t* head;
+    struct sym_node* head;
 };
 
 /* creates empty symtable */
-struct symtable_t* symtable_create();
+struct sym_table* symtable_create();
 
 /* adds symbol to symtable returns -1 if error occurred(symbol exists) */
 int symtable_add_symbol(
-        struct symtable_t *t,
+        struct sym_table *t,
         char *name,
         uint8_t section,
         uint8_t scope,
@@ -63,9 +62,9 @@ int symtable_add_symbol(
         uint32_t size
 );
 
-struct symdata_t* symtable_get_symdata(struct symtable_t* symtable, uint32_t index);
-struct symdata_t* symtable_get_symdata_by_name(struct symtable_t* symtable, const char* name);
-void symtable_destroy(struct symtable_t **symtable_ptr);
-void symtable_dump_to_buffer(struct symtable_t* symtable, uint8_t* buffer);
+struct sym_entry* symtable_get_symdata(struct sym_table* symtable, uint32_t index);
+struct sym_entry* symtable_get_symdata_by_name(struct sym_table* symtable, const char* name);
+void symtable_destroy(struct sym_table **symtable_ptr);
+void symtable_dump_to_buffer(struct sym_table* symtable, uint8_t* buffer);
 
 #endif //NIKI_ASM_SYMBOL_H
