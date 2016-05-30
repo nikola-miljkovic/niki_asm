@@ -32,6 +32,9 @@ typedef int(*test_function_t)(int);
 /* need to check directive */
 int isdot(int v);
 int iscoma(int v);
+int isalnumsymbol(int v);
+int iscomaorminus(int v);
+
 
 int parse_file(FILE *fp, line_content_t *program_lines, size_t program_lines_length);
 int read_label(const char* line, line_content_t* line_content);

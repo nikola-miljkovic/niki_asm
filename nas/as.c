@@ -35,7 +35,7 @@ int32_t get_directive_size(const line_content_t* line_content) {
         return directive_info[i].size;
 
     // in case of variable size of directive
-    if (strcmp(directive_info[i].directive,"skip") == 0) {
+    if (strutil_is_equal(directive_info[i].directive, "skip")) {
         return atoi(line_content[i].args[0]);
     }
     // TODO: add align
@@ -78,15 +78,15 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
                 // error
             } else if (arg[1].type == ARGUMENT_TYPE_IMMEDIATE) {
                 instruction.arithmetic_op_imm.address_type_bit = 1;
-                instruction.arithmetic_op_imm.dst = (uint32_t)arg[0].value;
-                instruction.arithmetic_op_imm.imm = (uint32_t)arg[1].value;
+                instruction.arithmetic_op_imm.dst = arg[0].value.uval;
+                instruction.arithmetic_op_imm.imm = arg[1].value.uval;
             } else if (arg[1].type == ARGUMENT_TYPE_REGISTER) {
                 instruction.arithmetic_op_src.address_type_bit = 0;
-                instruction.arithmetic_op_src.dst = (uint32_t)arg[0].value;
-                instruction.arithmetic_op_src.src = (uint32_t)arg[1].value;
+                instruction.arithmetic_op_src.dst = arg[0].value.uval;
+                instruction.arithmetic_op_src.src = arg[1].value.uval;
             } else if (arg[1].type == ARGUMENT_TYPE_SYMBOL) {
                 instruction.arithmetic_op_imm.address_type_bit = 1;
-                instruction.arithmetic_op_imm.dst = (uint32_t)arg[0].value;
+                instruction.arithmetic_op_imm.dst = arg[0].value.uval;
                 symdata = symtable_get_symdata_by_name(context->symtable, line_content->args[1]);
                 if (symdata == NULL) {
                     // TODO: Error
@@ -104,8 +104,8 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
         case OP_TEST:
             READ_ARGS(2);
             if (arg[0].type == ARGUMENT_TYPE_REGISTER && arg[1].type == ARGUMENT_TYPE_REGISTER) {
-                instruction.logical_op.dst = (uint32_t)arg[0].value;
-                instruction.logical_op.src = (uint32_t)arg[1].value;
+                instruction.logical_op.dst = arg[0].value.uval;
+                instruction.logical_op.src = arg[1].value.uval;
             } else {
                 // TODO: Handle errors
             }
@@ -113,12 +113,39 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
 
         case OP_LDR:
         //case OP_STR:
-            READ_ARGS(3);
-            if (arg[0].type != ARGUMENT_TYPE_REGISTER ||
-                (arg[1].type != ARGUMENT_TYPE_IMMEDIATE && arg[1].type != ARGUMENT_TYPE_SYMBOL)) {
-                // TODO: Handle errors
-            } else {
+            READ_ARGS(4);
+            if (arg[0].type == ARGUMENT_TYPE_REGISTER && arg[1].type == ARGUMENT_TYPE_REGISTER) {
+                if (arg[1].value.uval != AS_REGISTER_PSW && arg[1].value.uval < AS_REGISTER_GENERAL_END) {
+                    // TODO: error
+                }
 
+                if (arg[2].type == ARGUMENT_TYPE_SYMBOL) {
+                    instruction.load_store_op.imm = 0;
+                    symdata = symtable_get_symdata_by_name(context->symtable, line_content->args[2]);
+                    if (symdata == NULL) {
+                        // TODO: Error
+                    } else {
+                        reloc_table_add(context->reloctable, symdata->index, context->location_counter);
+                    }
+                } else if (arg[2].type == ARGUMENT_TYPE_IMMEDIATE) {
+                    instruction.load_store_op.imm = arg[2].value.ival;
+                } else {
+                    // TODO: error
+                }
+
+                if (arg[3].type == ARGUMENT_TYPE_EXTRA) {
+                    instruction.load_store_op.f = arg[3].value.uval;
+                } else if(arg[3].type == ARGUMENT_TYPE_NONE) {
+                    instruction.load_store_op.f = EXTRA_REG_FUNCTION_NONE;
+                } else {
+                    // TODO: error
+                }
+
+                // first two params
+                instruction.load_store_op.r = arg[0].value.uval;
+                instruction.load_store_op.a = arg[1].value.uval;
+            } else {
+                // TODO: Handle errors
             }
             break;
 
@@ -128,9 +155,9 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
                 (arg[1].type != ARGUMENT_TYPE_IMMEDIATE && arg[1].type != ARGUMENT_TYPE_SYMBOL)) {
                 // TODO: handle errors
             } else {
+                instruction.call_op.dst = arg[0].value.uval;
 
                 if (arg[1].type == ARGUMENT_TYPE_SYMBOL) {
-                    instruction.call_op.dst = (uint32_t)arg[0].value;
                     symdata = symtable_get_symdata_by_name(context->symtable, line_content->args[1]);
                     if (symdata == NULL) {
                         // TODO: Error
@@ -138,6 +165,8 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
                         reloc_table_add(context->reloctable, symdata->index, context->location_counter);
                         instruction.arithmetic_op_imm.imm = 0;
                     }
+                } else {
+                    instruction.call_op.imm = arg[1].value.ival;
                 }
             }
 
@@ -145,11 +174,25 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
 
         case OP_IN:
         //case OP_OUT:
+            READ_ARGS(2);
+            if (arg[0].type == ARGUMENT_TYPE_REGISTER && arg[1].type == ARGUMENT_TYPE_REGISTER) {
+                uint32_t  val = arg[0].value.uval;
+                instruction.io_op.dst = val;
+                instruction.io_op.src = arg[1].value.uval;
+            }
             break;
 
         case OP_MOV:
         //case OP_SHR:
         //case OP_SHL:
+            if (arg[0].type == ARGUMENT_TYPE_REGISTER && arg[1].type == ARGUMENT_TYPE_REGISTER) {
+
+            }
+            break;
+
+        case OP_LDCH:
+        //case OP_LDCL:
+
             break;
 
         default:
@@ -159,12 +202,43 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
 }
 
 void read_operation(union instruction* instruction_ptr, const char *name_str) {
-    for (uint32_t i = 0; i < OPCODES_END; i += 1) {
+    for (uint32_t i = 0; i < INSTRUCTION_COUNT; i += 1) {
         for (uint32_t operation = 0; operation < OPERATION_CONDITION_END; operation += 1) {
             if (strutil_consists_of(name_str, instruction_info[i].name, condition_info[operation])) {
                 instruction_ptr->instruction.opcode = instruction_info[i].opcode;
                 instruction_ptr->instruction.cf = instruction_info[i].cf;
                 instruction_ptr->instruction.condition = operation;
+
+                // special cases
+                // load/store bit
+                if (instruction_ptr->instruction.opcode == OP_LDR) {
+                    if (strutil_begins_with(name_str, "ldr")) {
+                        instruction_ptr->load_store_op.ls = MEMORY_FUNCTION_LOAD;
+                    } else {
+                        instruction_ptr->load_store_op.ls = MEMORY_FUNCTION_STORE;
+                    }
+                } else if (instruction_ptr->instruction.opcode == OP_IN) {
+                    if (strutil_begins_with(name_str, "in")) {
+                        instruction_ptr->io_op.io = IO_BIT_INPUT;
+                    } else {
+                        instruction_ptr->load_store_op.ls = IO_BIT_OUTPUT;
+                    }
+                } else if (instruction_ptr->instruction.opcode == OP_MOV) {
+                    if (strutil_begins_with(name_str, "shr")) {
+                        instruction_ptr->mov_op.lr = SHIFT_DIRECTION_RIGHT;
+                    } else {
+                        instruction_ptr->mov_op.lr = SHIFT_DIRECTION_LEFT;
+                    }
+
+                    // TODO: Add mov
+                } else if (instruction_ptr->instruction.opcode == OP_LDCH) {
+                    if (strutil_begins_with(name_str, "ldch")) {
+                        instruction_ptr->ldlh_op.hl = PART_BYTE_HIGHER;
+                    } else {
+                        instruction_ptr->ldlh_op.hl = PART_BYTE_LOWER;
+                    }
+                }
+
                 return;
             }
         }
@@ -175,8 +249,11 @@ argument_info_t
 read_argument(const char* arg_str) {
     int i = 0;
     size_t arglen = strlen(arg_str);
+    value_t value;
+
     if (arglen == 0) {
-        return (argument_info_t){ 0, ARGUMENT_TYPE_NONE };
+        value.uval = 0;
+        return (argument_info_t){ value, ARGUMENT_TYPE_NONE };
     }
     // check if it is valid register string
     // if so return reg_number else return -1
@@ -191,9 +268,10 @@ read_argument(const char* arg_str) {
         int32_t reg_num = atoi(arg_str + 1);
         if (reg_num > 15 || reg_num < 0)
             goto ret_error;
-        return (argument_info_t){ reg_num, ARGUMENT_TYPE_REGISTER };
+        value.uval = (uint32_t)reg_num;
+        return (argument_info_t){ value, ARGUMENT_TYPE_REGISTER };
     }
-    // check if argument is immediate value, +|-(num)|(num)
+    // check if argument is immediate value, +|-(num...)
     //
     else if (((arg_str[0] == '+' || arg_str[0] == '-') && arglen > 1)
             || isdigit(arg_str[0])){
@@ -203,7 +281,8 @@ read_argument(const char* arg_str) {
             }
         }
         int32_t imm_val = atoi(arg_str);
-        return (argument_info_t){ imm_val, ARGUMENT_TYPE_IMMEDIATE };
+        value.ival = imm_val;
+        return (argument_info_t){ value, ARGUMENT_TYPE_IMMEDIATE };
     }
     // check if argument is special register, symbolname or extra func
     //
@@ -226,34 +305,44 @@ read_argument(const char* arg_str) {
             }
         }
         // return type as symbol, and let caller handle it
-        return (argument_info_t){ 0, ARGUMENT_TYPE_SYMBOL };
+        value.uval = 0;
+        return (argument_info_t){ value, ARGUMENT_TYPE_SYMBOL };
     }
 ret_error:
-    return (argument_info_t){ 0, ARGUMENT_TYPE_ERROR };
+    value.uval = 0;
+    return (argument_info_t){ value, ARGUMENT_TYPE_ERROR };
 }
 
 argument_info_t
 check_extra(const char* arg_str) {
+    value_t value = { 0 };
+    argument_info_t argument = { value, ARGUMENT_TYPE_EXTRA };
     if (strutil_is_equal(arg_str, EXTRA_FUNCTION_POST_INC))
-        return (argument_info_t){ EXTRA_REG_FUNCTION_POST_INC, ARGUMENT_TYPE_EXTRA };
-    if (strutil_is_equal(arg_str, EXTRA_FUNCTION_PRE_INC))
-        return (argument_info_t){ EXTRA_REG_FUNCTION_PRE_INC, ARGUMENT_TYPE_EXTRA };
-    if (strutil_is_equal(arg_str, EXTRA_FUNCTION_PRE_DEC))
-        return (argument_info_t){ EXTRA_REG_FUNCTION_PRE_DEC, ARGUMENT_TYPE_EXTRA };
-    if (strutil_is_equal(arg_str, EXTRA_FUNCTION_POST_DEC))
-        return (argument_info_t){ EXTRA_REG_FUNCTION_POST_DEC, ARGUMENT_TYPE_EXTRA };
-    return (argument_info_t){ 0, ARGUMENT_TYPE_ERROR };
+        argument.value.uval = EXTRA_REG_FUNCTION_POST_INC;
+    else if (strutil_is_equal(arg_str, EXTRA_FUNCTION_PRE_INC))
+        argument.value.uval = EXTRA_REG_FUNCTION_PRE_INC;
+    else if (strutil_is_equal(arg_str, EXTRA_FUNCTION_PRE_DEC))
+        argument.value.uval = EXTRA_REG_FUNCTION_PRE_DEC;
+    else if (strutil_is_equal(arg_str, EXTRA_FUNCTION_POST_DEC))
+        argument.value.uval = EXTRA_REG_FUNCTION_POST_DEC;
+    else
+        argument.type = ARGUMENT_TYPE_ERROR;
+    return argument;
 }
 
 argument_info_t
 check_register(const char* arg_str) {
+    value_t value = { 0 };
+    argument_info_t argument = { value, ARGUMENT_TYPE_REGISTER };
     if (strutil_is_equal(arg_str, AS_REGISTER_PC_STR))
-        return (argument_info_t){ AS_REGISTER_PC, ARGUMENT_TYPE_REGISTER };
-    if (strutil_is_equal(arg_str, AS_REGISTER_SP_STR))
-        return (argument_info_t){ AS_REGISTER_SP, ARGUMENT_TYPE_REGISTER };
-    if (strutil_is_equal(arg_str, AS_REGISTER_LR_STR))
-        return (argument_info_t){ AS_REGISTER_LR, ARGUMENT_TYPE_REGISTER };
-    if (strutil_is_equal(arg_str, AS_REGISTER_PSW_STR))
-        return (argument_info_t){ AS_REGISTER_PSW, ARGUMENT_TYPE_REGISTER };
-    return (argument_info_t){ 0, ARGUMENT_TYPE_ERROR };
+        argument.value.uval = AS_REGISTER_PC;
+    else if (strutil_is_equal(arg_str, AS_REGISTER_SP_STR))
+        argument.value.uval = AS_REGISTER_SP;
+    else if (strutil_is_equal(arg_str, AS_REGISTER_LR_STR))
+        argument.value.uval = AS_REGISTER_LR;
+    else if (strutil_is_equal(arg_str, AS_REGISTER_PSW_STR))
+        argument.value.uval = AS_REGISTER_PSW;
+    else
+        argument.type = ARGUMENT_TYPE_ERROR;
+    return argument;
 }

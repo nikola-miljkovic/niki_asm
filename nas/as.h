@@ -75,8 +75,13 @@ enum argument_type {
     ARGUMENT_TYPE_END,
 };
 
+typedef union {
+    uint32_t uval;
+    int32_t  ival;
+} value_t;
+
 typedef struct {
-    int32_t     value;
+    value_t     value;
     uint32_t    type; // value -1 means its variable based on arguments
 } argument_info_t;
 
@@ -89,26 +94,40 @@ typedef struct {
 const static instruction_info_t instruction_info[] = {
     /* name     opcode      cf */
     { "int",    OP_INT,     0 },
-    { "add",    OP_ADD,     1 },
-    { "sub",    OP_SUB,     1 },
-    { "mul",    OP_MUL,     1 },
-    { "div",    OP_DIV,     1 },
-    { "cmp",    OP_CMP,     1 },
-    { "and",    OP_AND,     1 },
-    { "or",     OP_OR,      1 },
-    { "not",    OP_NOT,     1 },
-    { "test",   OP_TEST,    1 },
+    { "add",    OP_ADD,     0 },
+    { "sub",    OP_SUB,     0 },
+    { "mul",    OP_MUL,     0 },
+    { "div",    OP_DIV,     0 },
+    { "cmp",    OP_CMP,     0 },
+    { "and",    OP_AND,     0 },
+    { "or",     OP_OR,      0 },
+    { "not",    OP_NOT,     0 },
+    { "test",   OP_TEST,    0 },
+    { "adds",   OP_ADD,     1 },
+    { "subs",   OP_SUB,     1 },
+    { "muls",   OP_MUL,     1 },
+    { "divs",   OP_DIV,     1 },
+    { "cmps",   OP_CMP,     1 },
+    { "ands",   OP_AND,     1 },
+    { "ors",    OP_OR,      1 },
+    { "nots",   OP_NOT,     1 },
+    { "tests",  OP_TEST,    1 },
     { "ldr",    OP_LDR,     0 },
     { "str",    OP_STR,     0 },
     { "call",   OP_CALL,    0 },
     { "in",     OP_IN,      0 },
     { "out",    OP_OUT,     0 },
-    { "mov",    OP_MOV,     1 },
-    { "shr",    OP_SHR,     1 },
-    { "shl",    OP_SHL,     1 },
+    { "mov",    OP_MOV,     0 },
+    { "shr",    OP_SHR,     0 },
+    { "shl",    OP_SHL,     0 },
+    { "movs",   OP_MOV,     1 },
+    { "shrs",   OP_SHR,     1 },
+    { "shls",   OP_SHL,     1 },
     { "ldch",   OP_LDCH,    0 },
     { "ldcl",   OP_LDCL,    0 },
 };
+
+const static size_t INSTRUCTION_COUNT = sizeof(instruction_info) / sizeof(instruction_info_t);
 
 struct elf_context {
     struct sym_table*   symtable;

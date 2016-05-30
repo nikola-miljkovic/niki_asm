@@ -3,6 +3,7 @@
 //
 
 #include <string.h>
+#include <stdbool.h>
 #include "string_util.h"
 
 int32_t strutil_is_equal(const char *str1, const char *str2) {
@@ -39,9 +40,14 @@ int32_t strutil_consists_of(const char *str1, const char *part1, const char *par
 
 int32_t strutil_is_empty(const char* str1) {
     size_t len = strlen(str1);
-    return len > 0;
+    return len == 0;
 }
 
+int32_t strutil_begins_with(const char* str1, const char* str2) {
+    size_t lenpre = strlen(str1);
+    size_t lenstr = strlen(str2);
+    return lenstr < lenpre ? false : strncmp(str1, str2, lenpre) == 0;
+}
 
 
 

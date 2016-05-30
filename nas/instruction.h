@@ -32,7 +32,7 @@ union instruction {
         uint32_t off:8;
         uint32_t dst:5;
         uint32_t address_type_bit:1;
-        uint32_t imm:18;
+        int32_t imm:18;
     } arithmetic_op_imm;
 
     struct {
@@ -48,13 +48,13 @@ union instruction {
         uint32_t r:5;
         uint32_t f:3;
         uint32_t ls:1;
-        uint32_t imm:10;
+        int32_t imm:10;
     } load_store_op;
 
     struct {
         uint32_t off:8;
         uint32_t dst:5;
-        uint32_t imm:19;
+        int32_t imm:19;
     } call_op;
 
     struct {

@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
 #endif
     ASSERT_AND_EXIT(argc == 1, "ERROR: No input file specified.\n");
 
+    printf("NOTE: Size of instruction %lu", sizeof(union instruction));
+
     char input_file[512];
     char output_file[512] = "";
 
@@ -100,13 +102,24 @@ int main(int argc, char *argv[])
                         current_section = SYMBOL_SECTION_BSS;
                     else if (strutil_is_equal(program_lines[i].name, DIRECTIVE_NAME_EXTERN)) {
                         // extern symbol
-                        int status = symtable_add_symbol(symtable,
-                                                         program_lines[i].args[0],
-                                                         SYMBOL_SECTION_NONE,
-                                                         SYMBOL_SCOPE_GLOBAL,
-                                                         SYMBOL_TYPE_EXTERN,
-                                                         0, 0);
-                        ASSERT_AND_EXIT(status < 0, "ERROR: Compilation failed at line (%d): Symbol '%s' is already defined\n", i, program_lines[i].label);
+                        for (int32_t arg_i = 0; arg_i < MAX_INSTRUCTON_ARGUMENTS; arg_i += 1) {
+                            if (!strutil_is_empty(program_lines[i].args[arg_i])) {
+                                int status = symtable_add_symbol(symtable,
+                                                                 program_lines[i].args[arg_i],
+                                                                 SYMBOL_SECTION_NONE,
+                                                                 SYMBOL_SCOPE_GLOBAL,
+                                                                 SYMBOL_TYPE_EXTERN,
+                                                                 0, 0);
+                                ASSERT_AND_EXIT(status < 0,
+                                                "ERROR: Compilation failed at line (%d): Symbol '%s' is already defined\n",
+                                                i, program_lines[i].label);
+                            } else {
+                                ASSERT_AND_EXIT(arg_i == 0,
+                                                "ERROR: Compilation failed at line (%d): Invalid directive arguments\n",
+                                                i);
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -124,6 +137,7 @@ int main(int argc, char *argv[])
                 ASSERT_AND_EXIT(!strutil_is_empty(program_lines[i + 1].label), "ERROR: Compilation failed at line (%d): Double label\n", i);
 
                 strcpy(program_lines[i + 1].label, program_lines[i].label);
+                continue;
             }
             default:
                 break;
@@ -172,9 +186,19 @@ int main(int argc, char *argv[])
                     else if (strcmp(program_lines[i].name, SECTION_NAME_BSS) == 0)
                         current_section = SYMBOL_SECTION_BSS;
                     else if (strutil_is_equal(program_lines[i].name, DIRECTIVE_NAME_PUBLIC)) {
-                        struct sym_entry* node = symtable_get_symdata_by_name(symtable, program_lines[i].args[0]);
-                        ASSERT_AND_EXIT(node == NULL, "ERROR: Compilation failed at line (%d): Symbol '%s' is not defined\n", i, program_lines[i].args[0]);
-                        node->scope = SYMBOL_SCOPE_GLOBAL;
+                        for (int32_t arg_i = 0; arg_i < MAX_INSTRUCTON_ARGUMENTS; arg_i += 1) {
+                            if (!strutil_is_empty(program_lines[i].args[arg_i])) {
+                                struct sym_entry* node = symtable_get_symdata_by_name(symtable, program_lines[i].args[arg_i]);
+                                ASSERT_AND_EXIT(node == NULL,
+                                                "ERROR: Compilation failed at line (%d): Symbol '%s' is not defined\n",
+                                                i, program_lines[i].args[arg_i]);
+                                node->scope = SYMBOL_SCOPE_GLOBAL;
+                            } else {
+                                ASSERT_AND_EXIT(arg_i == 0,
+                                                "ERROR: Compilation failed at line (%d): Invalid directive arguments\n", i);
+                                break;
+                            }
+                        }
                     }
                 } else {
                     int arg;

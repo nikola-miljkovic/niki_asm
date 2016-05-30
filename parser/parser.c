@@ -99,7 +99,7 @@ read_directive(const char *line, line_content_t *line_content)
             &isalpha,       // actual directive
             &isblank,       // blankspace
             &isalnum,       // argument
-            &iscoma,        // coma fora arguments
+            &iscoma,        // coma for arguments
     };
 
     size_t vector_size = sizeof(test_func) / sizeof(test_function_t);
@@ -197,8 +197,8 @@ read_instruction(const char *line, line_content_t *line_content)
 
 int isdot(int v) { return v == '.'; }
 int iscoma(int v) { return v == ','; }
-
-
+int isalnumsymbol(int v) { return (isalnum(v) || v == '+' || v == '-'); }
+int iscomaorminus(int v) { return (iscoma(v) || v == '-'); }
 
 
 
