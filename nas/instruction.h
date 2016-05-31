@@ -79,7 +79,7 @@ union instruction {
         uint32_t dst:4;
         uint32_t hl:1;
         uint32_t nu:3;
-        uint32_t c:16;
+        int32_t c:16;
     } ldlh_op;
 
     struct {

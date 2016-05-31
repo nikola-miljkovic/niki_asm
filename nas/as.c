@@ -185,14 +185,51 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
         case OP_MOV:
         //case OP_SHR:
         //case OP_SHL:
-            if (arg[0].type == ARGUMENT_TYPE_REGISTER && arg[1].type == ARGUMENT_TYPE_REGISTER) {
+            READ_ARGS(3);
+            if (arg[0].type == ARGUMENT_TYPE_REGISTER
+                    && arg[1].type == ARGUMENT_TYPE_REGISTER
+                    && (arg[2].type == ARGUMENT_TYPE_SYMBOL
+                        || arg[2].type == ARGUMENT_TYPE_IMMEDIATE
+                        || arg[2].type == ARGUMENT_TYPE_NONE)) {
+                instruction.mov_op.dst = arg[0].value.uval;
+                instruction.mov_op.src = arg[1].value.uval;
 
+                if (arg[2].type == ARGUMENT_TYPE_SYMBOL) {
+                    symdata = symtable_get_symdata_by_name(context->symtable, line_content->args[2]);
+                    if (symdata == NULL) {
+                        // TODO: Error
+                    } else {
+                        reloc_table_add(context->reloctable, symdata->index, context->location_counter);
+                        instruction.mov_op.imm = 0;
+                    }
+                } else if (arg[2].type == ARGUMENT_TYPE_IMMEDIATE) {
+                    instruction.call_op.imm = arg[2].value.ival;
+                } else {
+                    instruction.call_op.imm = 0;
+                }
             }
+
             break;
 
         case OP_LDCH:
         //case OP_LDCL:
+            READ_ARGS(2);
+            if (arg[0].type == ARGUMENT_TYPE_REGISTER
+                && (arg[1].type == ARGUMENT_TYPE_IMMEDIATE || arg[1].type == ARGUMENT_TYPE_SYMBOL)) {
+                instruction.ldlh_op.dst = arg[0].value.uval;
 
+                if (arg[1].type == ARGUMENT_TYPE_SYMBOL) {
+                    symdata = symtable_get_symdata_by_name(context->symtable, line_content->args[1]);
+                    if (symdata == NULL) {
+                        // TODO: Error
+                    } else {
+                        reloc_table_add(context->reloctable, symdata->index, context->location_counter);
+                        instruction.mov_op.imm = 0;
+                    }
+                } else {
+                    instruction.ldlh_op.c = arg[1].value.ival;
+                }
+            }
             break;
 
         default:
@@ -226,11 +263,11 @@ void read_operation(union instruction* instruction_ptr, const char *name_str) {
                 } else if (instruction_ptr->instruction.opcode == OP_MOV) {
                     if (strutil_begins_with(name_str, "shr")) {
                         instruction_ptr->mov_op.lr = SHIFT_DIRECTION_RIGHT;
-                    } else {
+                    } else if (strutil_begins_with(name_str, "shl")) {
                         instruction_ptr->mov_op.lr = SHIFT_DIRECTION_LEFT;
+                    } else {
+                        instruction_ptr->mov_op.imm = 0;
                     }
-
-                    // TODO: Add mov
                 } else if (instruction_ptr->instruction.opcode == OP_LDCH) {
                     if (strutil_begins_with(name_str, "ldch")) {
                         instruction_ptr->ldlh_op.hl = PART_BYTE_HIGHER;

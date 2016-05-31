@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
     }
 
     // init buffers and reset location counters
-    uintptr_t* binary_buffer[SYMBOL_SECTION_END];
+    uint8_t* binary_buffer[SYMBOL_SECTION_END];
     for (int i = 0; i < SYMBOL_SECTION_END; i++) {
         binary_buffer[i] = malloc(location_counter[i]*sizeof(uint8_t));
         location_counter[i] = 0;
@@ -201,7 +201,8 @@ int main(int argc, char *argv[])
                         }
                     }
                 } else {
-                    int arg;
+                    int32_t arg;
+                    size_t value_size = (size_t)size;
                     if (strcmp(program_lines[i].name, DIRECTIVE_NAME_SKIP) == 0) {
                         arg = 0;
                     } else if (strcmp(program_lines[i].name, DIRECTIVE_NAME_ALIGN) == 0) {
@@ -210,8 +211,8 @@ int main(int argc, char *argv[])
                         arg = atoi(program_lines[i].args[0]);
                     }
                     memcpy(binary_buffer[current_section] + location_counter[current_section],
-                           &arg, (size_t)size);
-                    location_counter[current_section] += size;
+                           &arg, value_size);
+                    location_counter[current_section] += value_size;
                 }
             } break;
             case LINE_TYPE_INSTRUCTION:
@@ -237,6 +238,7 @@ int main(int argc, char *argv[])
     uint8_t* reloctable_buffer = malloc(reloctable_size);
     reloc_table_dump_to_buffer(context.reloctable, reloctable_buffer);
 
+    /* Create output data and write it! */
     struct elf output;
     uint32_t elf_size = sizeof(struct elf);
 
@@ -255,7 +257,7 @@ int main(int argc, char *argv[])
     memcpy(output_buffer + output.symbol_start, symtable_buffer, symtable_size);
     memcpy(output_buffer + output.reloc_start, reloctable_buffer, reloctable_size);
 
-    fwrite(output_buffer, sizeof(uint8_t), output.size, fp_output);
+    fwrite(output_buffer, sizeof(uint8_t), elf_size + output.size, fp_output);
 
     fclose(fp_output);
     fclose(fp_input);

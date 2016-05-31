@@ -5,7 +5,7 @@ find_package(Doxygen)
 
 include_directories(.)
 
-set(SOURCE_FILES
+set(SOURCE_FILES_AS
         nas/instruction.h
         nas/nas.c nas/nas.h
         nas/as.h nas/as.c
@@ -15,8 +15,18 @@ set(SOURCE_FILES
         parser/parser.c parser/parser.h
         parser/string_util.c parser/string_util.h)
 
+set(SOURCE_FILES_EMU
+        nas/instruction.h
+        nas_run/nas_run.c nas_run/nas_run.h
+        nas/as.h nas/as.c
+        nas/reloc.c nas/reloc.h
+        nas/symbol.c nas/symbol.h
+
+        parser/parser.c parser/parser.h
+        parser/string_util.c parser/string_util.h)
+
 if(DOXYGEN_FOUND)
-    set(DOXYGEN_INPUT ${SOURCE_FILES})
+    set(DOXYGEN_INPUT ${SOURCE_FILES_AS})
     set(DOXYGEN_OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Doxyfile)
 
     add_custom_command(
@@ -44,4 +54,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
-add_executable(nas ${SOURCE_FILES})
+add_executable(nas ${SOURCE_FILES_AS})
+add_executable(nas_run ${SOURCE_FILES_EMU})
