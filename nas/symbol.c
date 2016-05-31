@@ -125,3 +125,19 @@ void symtable_dump_to_buffer(struct sym_table* symtable, uint8_t* buffer) {
         current = current->next;
     }
 }
+
+struct sym_table*
+symtable_create_from_buffer(uint8_t* buffer, size_t size) {
+    const size_t entry_size = sizeof(struct sym_entry);
+    const size_t table_length = (uint32_t)size / entry_size;
+    struct sym_table *table = symtable_create();
+    struct sym_entry entry;
+
+
+    for (int32_t i = 0; i < table_length; i += 1) {
+        memcpy(&entry, buffer + i * entry_size, entry_size);
+        symtable_add_symbol(table, entry.name, entry.section, entry.scope, entry.type, entry.offset, entry.size);
+    }
+
+    return table;
+}

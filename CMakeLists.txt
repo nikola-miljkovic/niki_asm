@@ -23,7 +23,7 @@ set(SOURCE_FILES_EMU
         nas/symbol.c nas/symbol.h
 
         parser/parser.c parser/parser.h
-        parser/string_util.c parser/string_util.h)
+        parser/string_util.c parser/string_util.h nas_run/nas_util.c nas_run/nas_util.h)
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_INPUT ${SOURCE_FILES_AS})

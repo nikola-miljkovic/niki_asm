@@ -65,8 +65,19 @@ reloc_table_get_offset(struct reloc_table *table, uint32_t index) {
     return 0;
 }
 
-struct reloc_table* reloc_table_create_from_buffer(uint8_t* buffer) {
-    return NULL;
+struct reloc_table*
+reloc_table_create_from_buffer(uint8_t* buffer, size_t size) {
+    const size_t entry_size = sizeof(struct reloc_entry);
+    const size_t length = size / entry_size;
+    struct reloc_table *table = reloc_table_create();
+    struct reloc_entry entry;
+
+    for (int32_t i = 0; i < length; i += 1) {
+        memcpy(&entry, buffer + i * entry_size, entry_size);
+        reloc_table_add(table, entry.index, entry.offset);
+    }
+
+    return table;
 }
 
 void reloc_table_dump_to_buffer(const struct reloc_table* table, uint8_t* buffer) {

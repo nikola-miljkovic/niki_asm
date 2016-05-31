@@ -66,5 +66,6 @@ struct sym_entry* symtable_get_symdata(struct sym_table* symtable, uint32_t inde
 struct sym_entry* symtable_get_symdata_by_name(struct sym_table* symtable, const char* name);
 void symtable_destroy(struct sym_table **symtable_ptr);
 void symtable_dump_to_buffer(struct sym_table* symtable, uint8_t* buffer);
+struct sym_table* symtable_create_from_buffer(uint8_t* buffer, size_t size);
 
 #endif //NIKI_ASM_SYMBOL_H

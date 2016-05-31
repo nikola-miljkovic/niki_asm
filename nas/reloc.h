@@ -28,7 +28,7 @@ void reloc_table_destroy(struct reloc_table** table);
 void reloc_table_add(struct reloc_table* table, uint32_t index, uint32_t offset);
 uint32_t reloc_table_get_offset(struct reloc_table *table, uint32_t index);
 
-struct reloc_table* reloc_table_create_from_buffer(uint8_t* buffer);
+struct reloc_table* reloc_table_create_from_buffer(uint8_t* buffer, size_t size);
 void reloc_table_dump_to_buffer(const struct reloc_table* table, uint8_t* buffer);
 
 #endif //NIKI_ASM_RELOC_H
