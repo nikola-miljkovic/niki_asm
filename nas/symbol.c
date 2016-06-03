@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <parser/string_util.h>
 
 #include "symbol.h"
 
@@ -36,14 +37,15 @@ void symtable_destroy(struct sym_table **symtable_ptr)
 }
 
 int
-symtable_add_symbol(
+_symtable_add_symbol(
         struct sym_table *t,
         char *name,
         uint8_t section,
         uint8_t scope,
         uint8_t type,
         uint32_t offset,
-        uint32_t size)
+        uint32_t size,
+        uint32_t force)
 {
     struct sym_node* last_element = t->head;
     struct sym_node* new_element = NULL;
@@ -59,7 +61,7 @@ symtable_add_symbol(
     /* go to last element and check if symbol with this name already exists */
     while (last_element->next != NULL) {
         last_element = last_element->next;
-        if (strcmp(last_element->value->name, name) == 0) {
+        if (force == 0 && strcmp(last_element->value->name, name) == 0) {
             return -1;
         }
     }
@@ -83,6 +85,32 @@ symtable_add_symbol(
     new_element->value->size = size;
     t->length += 1;
     return 0;
+}
+
+int
+symtable_add_symbol(
+        struct sym_table *t,
+        char *name,
+        uint8_t section,
+        uint8_t scope,
+        uint8_t type,
+        uint32_t offset,
+        uint32_t size)
+{
+    return _symtable_add_symbol(t, name, section, scope, type, offset, size, 0);
+}
+
+int
+symtable_add_symbol_force(
+        struct sym_table *t,
+        char *name,
+        uint8_t section,
+        uint8_t scope,
+        uint8_t type,
+        uint32_t offset,
+        uint32_t size)
+{
+    return _symtable_add_symbol(t, name, section, scope, type, offset, size, 1);
 }
 
 struct sym_entry*
@@ -140,4 +168,42 @@ symtable_create_from_buffer(uint8_t* buffer, size_t size) {
     }
 
     return table;
+}
+
+int symtable_resolve_globals(struct sym_table* symtable) {
+    struct sym_node* current = symtable->head;
+
+    while (current != NULL) {
+        if (current->value->scope == SYMBOL_SCOPE_GLOBAL
+            && current->value->section != SYMBOL_SECTION_NONE
+            && current->value->type != SYMBOL_TYPE_EXTERN) {
+            struct sym_node* current_inner = symtable->head;
+
+            while(current_inner != NULL) {
+                if (strutil_is_equal(current->value->name, current_inner->value->name)
+                    && current_inner->value->scope == SYMBOL_SCOPE_GLOBAL) {
+                    /* Check if its not updated and update it */
+                    if (current_inner->value->section == SYMBOL_SECTION_NONE
+                        && current_inner->value->type == SYMBOL_TYPE_EXTERN) {
+                        current_inner->value->section = current->value->section;
+                        current_inner->value->type = current->value->type;
+                        current_inner->value->offset = current->value->offset;
+                        current_inner->value->size = current->value->size;
+                    /* Check if its same global, if not return -1 */
+                    } else if (current_inner->value->section != current->value->section
+                        || current_inner->value->type != current->value->type
+                        || current_inner->value->offset != current->value->offset
+                        || current_inner->value->size != current->value->size) {
+                        return -1;
+                    }
+                }
+
+                current_inner = current_inner->next;
+            }
+        }
+
+        current = current->next;
+    }
+
+    return 0;
 }

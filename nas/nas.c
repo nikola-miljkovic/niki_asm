@@ -16,7 +16,7 @@
 #include "symbol.h"
 #include "reloc.h"
 
-/* Entry-point */
+/* nas entry cmakepoint */
 int main(int argc, char *argv[])
 {
 #if DEBUG
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 #endif
     ASSERT_AND_EXIT(argc == 1, "ERROR: No input file specified.\n");
 
-    printf("NOTE: Size of instruction %lu", sizeof(union instruction));
+    printf("NOTE: Size of instruction %lu\n", sizeof(union instruction));
 
     char input_file[512];
     char output_file[512] = "";

@@ -51,6 +51,18 @@ struct sym_table {
 /* creates empty symtable */
 struct sym_table* symtable_create();
 
+/* private version with forced/not */
+int _symtable_add_symbol(
+        struct sym_table *t,
+        char *name,
+        uint8_t section,
+        uint8_t scope,
+        uint8_t type,
+        uint32_t offset,
+        uint32_t size,
+        uint32_t force
+);
+
 /* adds symbol to symtable returns -1 if error occurred(symbol exists) */
 int symtable_add_symbol(
         struct sym_table *t,
@@ -62,10 +74,23 @@ int symtable_add_symbol(
         uint32_t size
 );
 
+/* forced always add symbol */
+int symtable_add_symbol_force(
+        struct sym_table *t,
+        char *name,
+        uint8_t section,
+        uint8_t scope,
+        uint8_t type,
+        uint32_t offset,
+        uint32_t size
+);
+
+
 struct sym_entry* symtable_get_symdata(struct sym_table* symtable, uint32_t index);
 struct sym_entry* symtable_get_symdata_by_name(struct sym_table* symtable, const char* name);
 void symtable_destroy(struct sym_table **symtable_ptr);
 void symtable_dump_to_buffer(struct sym_table* symtable, uint8_t* buffer);
 struct sym_table* symtable_create_from_buffer(uint8_t* buffer, size_t size);
 
+int symtable_resolve_globals(struct sym_table* symtable);
 #endif //NIKI_ASM_SYMBOL_H

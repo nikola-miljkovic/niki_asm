@@ -35,8 +35,8 @@ int32_t get_directive_size(const line_content_t* line_content) {
         return directive_info[i].size;
 
     // in case of variable size of directive
-    if (strutil_is_equal(directive_info[i].directive, "skip")) {
-        return atoi(line_content[i].args[0]);
+    if (strutil_is_equal(directive_info[i].directive, DIRECTIVE_NAME_SKIP)) {
+        return atoi(line_content->args[0]);
     }
     // TODO: add align
     return 0;

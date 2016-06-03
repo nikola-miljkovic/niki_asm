@@ -98,7 +98,7 @@ read_directive(const char *line, line_content_t *line_content)
             &isdot,         // start of directive
             &isalpha,       // actual directive
             &isblank,       // blankspace
-            &isalnum,       // argument
+            &isalnumsymbol,       // argument
             &iscoma,        // coma for arguments
     };
 
@@ -129,7 +129,7 @@ read_directive(const char *line, line_content_t *line_content)
                 if (test_func[current_func - 1] == &isalpha && test_func[current_func - 2] == &isdot) {
                     strncpy(line_content->name, line + last_test_position, position - last_test_position);
                     ret_code = 0;
-                } else if (test_func[current_func - 1] == &isalnum && test_func[current_func - 2] == &isblank) {
+                } else if (test_func[current_func - 1] == &isalnumsymbol && test_func[current_func - 2] == &isblank) {
                     // read argument!
                     strncpy(line_content->args[directive_arg++], line + last_test_position, position - last_test_position);
                 }
@@ -152,10 +152,10 @@ read_instruction(const char *line, line_content_t *line_content)
     uint32_t directive_arg = 0;
     test_function_t test_func[] = {
             &isblank,
-            &isalpha,       // instruction
-            &isblank,       // blankspace
-            &isalnum,       // argument
-            &iscoma,        // coma fora arguments
+            &isalpha,           // instruction
+            &isblank,           // blankspace
+            &isalnumsymbol,     // argument
+            &iscoma,            // coma fora arguments
     };
 
     size_t vector_size = sizeof(test_func) / sizeof(test_function_t);
@@ -180,7 +180,7 @@ read_instruction(const char *line, line_content_t *line_content)
                 if (test_func[current_func - 1] == &isalpha && test_func[current_func - 2] == &isblank) {
                     strncpy(line_content->name, line + last_test_position, position - last_test_position);
                     ret_code = 0;
-                } else if (test_func[current_func - 1] == &isalnum && test_func[current_func - 2] == &isblank) {
+                } else if (test_func[current_func - 1] == &isalnumsymbol && test_func[current_func - 2] == &isblank) {
                     // read arguments!
                     strncpy(line_content->args[directive_arg++], line + last_test_position,
                             position - last_test_position);
