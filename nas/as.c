@@ -303,7 +303,7 @@ read_argument(const char* arg_str) {
             }
         }
         int32_t reg_num = atoi(arg_str + 1);
-        if (reg_num > 15 || reg_num < 0)
+        if (reg_num > AS_REGISTER_GENERAL_END || reg_num < AS_REGISTER_GENERAL_BEGIN)
             goto ret_error;
         value.uval = (uint32_t)reg_num;
         return (argument_info_t){ value, ARGUMENT_TYPE_REGISTER };
