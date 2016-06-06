@@ -28,6 +28,21 @@ static int32_t registers[AS_REGISTER_END] = { 0 };
 static uint8_t* memory_buffer;
 //static uint32_t ivt_table[IVT_ENTRIES];
 
+static struct {
+    int32_t registers[AS_REGISTER_END];
+    uint8_t* memory;
+    uint32_t*ivt_table[IVT_ENTRIES];
+
+    struct {
+        uint8_t z:1;
+        uint8_t o:1;
+        uint8_t c:1;
+        uint8_t n:1;
+    } alu;
+} processor = {
+
+};
+
 int main(int argc, char *argv[]) {
     if (argc <= 2) {
         printf("Error\n");
@@ -247,5 +262,33 @@ int main(int argc, char *argv[]) {
 
         /* write back to memory */
         memcpy(memory_buffer + start_text + entry->offset, &instr, sizeof(union instruction));
+    }
+
+    union instruction instr;
+
+    /* EXECUTE code */
+    while (1) {
+        memcpy(&instr, memory_buffer + registers[AS_REGISTER_PC], sizeof(union instruction));
+        registers[AS_REGISTER_PC] += sizeof(union instruction);
+
+        if (instr.instruction.opcode == end_instruction.instruction.opcode
+            && instr.instruction.operands == end_instruction.instruction.operands) {
+            return 1;
+        }
+
+        switch (instr.instruction.opcode) {
+            case OP_INT:
+                break;
+
+            case OP_ADD:
+            case OP_SUB:
+            case OP_MUL:
+            case OP_DIV:
+
+                break;
+
+            default:
+                break;
+        }
     }
 }
