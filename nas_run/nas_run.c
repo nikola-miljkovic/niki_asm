@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+
 #include <nas/symbol.h>
 #include <nas/reloc.h>
 #include <limits.h>
@@ -26,22 +28,8 @@ static union instruction end_instruction = {
 
 static int32_t registers[AS_REGISTER_END] = { 0 };
 static uint8_t* memory_buffer;
-//static uint32_t ivt_table[IVT_ENTRIES];
-
-static struct {
-    int32_t registers[AS_REGISTER_END];
-    uint8_t* memory;
-    uint32_t*ivt_table[IVT_ENTRIES];
-
-    struct {
-        uint8_t z:1;
-        uint8_t o:1;
-        uint8_t c:1;
-        uint8_t n:1;
-    } alu;
-} processor = {
-
-};
+static uint32_t ivt_table[IVT_ENTRIES];
+static int32_t io_memory[0x4000];
 
 int main(int argc, char *argv[]) {
     if (argc <= 2) {
@@ -191,7 +179,7 @@ int main(int argc, char *argv[]) {
     ASSERT_AND_EXIT(main_label == NULL, "EMULATOR ERROR: No main found, exiting.");
 
     /* pint pc onto main label */
-    registers[AS_REGISTER_PC] = memory_location + main_label->offset;
+    registers[AS_REGISTER_PC] = memory_location + main_label->offset - 4;
 
     start_text = memory_location;
     memory_location += final_context->text_size;
@@ -265,30 +253,174 @@ int main(int argc, char *argv[]) {
     }
 
     union instruction instr;
+    int32_t evaluated_logic = NONE;
+    int64_t evaluated;
+
+    /* timers */
+    const uint32_t time_interrupt_const = 1;
+    uint32_t current_time = (uint32_t)time(NULL);
 
     /* EXECUTE code */
     while (1) {
         memcpy(&instr, memory_buffer + registers[AS_REGISTER_PC], sizeof(union instruction));
         registers[AS_REGISTER_PC] += sizeof(union instruction);
 
+        if ((uint32_t)time(NULL) - time_interrupt_const > current_time ) {
+            // generate interrupt and update time
+            printf("Sekund");
+            current_time = (uint32_t)time(NULL);
+        }
+
         if (instr.instruction.opcode == end_instruction.instruction.opcode
             && instr.instruction.operands == end_instruction.instruction.operands) {
             return 1;
         }
 
+        /* block if we don't have condition */
+        if (instr.instruction.condition != NONE) {
+            if ((instr.instruction.condition == EQ && evaluated_logic != 0)
+                || (instr.instruction.condition == NE && evaluated_logic == 0)
+                || (instr.instruction.condition == GT && evaluated_logic != 1)
+                || (instr.instruction.condition == GE && evaluated_logic == -1)
+                || (instr.instruction.condition == GT && evaluated_logic != -1)
+                || (instr.instruction.condition == GE && evaluated_logic == 1)) {
+                continue;
+            }
+        }
+
+
+
         switch (instr.instruction.opcode) {
             case OP_INT:
+                memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(uint32_t));
+                registers[AS_REGISTER_SP] += 4;
+                registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
+                if (ivt_table[instr.int_op.src] > 0) {
+                    registers[AS_REGISTER_PC] = ivt_table[instr.int_op.src];
+                }
                 break;
 
             case OP_ADD:
-            case OP_SUB:
-            case OP_MUL:
-            case OP_DIV:
+                evaluated = registers[instr.arithmetic_op_imm.dst];
+                evaluated += instr.arithmetic_op_imm.address_type_bit == ADDRESSING_MODE_IMMEDIATE ?
+                            instr.arithmetic_op_imm.imm : registers[instr.arithmetic_op_src.src];
+                registers[instr.arithmetic_op_imm.dst] = (int32_t)evaluated;
+                break;
 
+            case OP_SUB:
+                evaluated = registers[instr.arithmetic_op_imm.dst];
+                evaluated -= instr.arithmetic_op_imm.address_type_bit == ADDRESSING_MODE_IMMEDIATE ?
+                             instr.arithmetic_op_imm.imm : registers[instr.arithmetic_op_src.src];
+                registers[instr.arithmetic_op_imm.dst] = (int32_t)evaluated;
+                break;
+
+            case OP_MUL:
+                evaluated = registers[instr.arithmetic_op_imm.dst];
+                evaluated *= instr.arithmetic_op_imm.address_type_bit == ADDRESSING_MODE_IMMEDIATE ?
+                             instr.arithmetic_op_imm.imm : registers[instr.arithmetic_op_src.src];
+                registers[instr.arithmetic_op_imm.dst] = (int32_t)evaluated;
+                break;
+
+            case OP_DIV:
+                evaluated = registers[instr.arithmetic_op_imm.dst];
+                evaluated /= instr.arithmetic_op_imm.address_type_bit == ADDRESSING_MODE_IMMEDIATE ?
+                             instr.arithmetic_op_imm.imm : registers[instr.arithmetic_op_src.src];
+                registers[instr.arithmetic_op_imm.dst] = (int32_t)evaluated;
+                break;
+
+            case OP_CMP:
+                evaluated = instr.arithmetic_op_imm.address_type_bit == ADDRESSING_MODE_IMMEDIATE ?
+                            instr.arithmetic_op_imm.imm : registers[instr.arithmetic_op_src.src];
+
+                if (registers[instr.arithmetic_op_imm.dst] == evaluated) {
+                    evaluated_logic = 0;
+                } else if (registers[instr.arithmetic_op_imm.dst] >= evaluated) {
+                    evaluated_logic = 1;
+                } else if (registers[instr.arithmetic_op_imm.dst] <= evaluated) {
+                    evaluated_logic = -1;
+                }
+                break;
+
+            case OP_IN:
+            //case OP_OUT:
+                if(instr.io_op.io == IO_BIT_INPUT) {
+                    if (registers[instr.io_op.src] == 0x1000) {
+                        io_memory[registers[instr.io_op.src]] = getchar();
+                    }
+                    registers[instr.io_op.dst] = io_memory[registers[instr.io_op.src]];
+                } else {
+                    io_memory[registers[instr.io_op.src]] = registers[instr.io_op.dst];
+                    if (registers[instr.io_op.src] == (int32_t)0x2000) {
+                        printf("%d", io_memory[registers[instr.io_op.src]]);
+                    }
+                }
+                break;
+
+            case OP_LDR:
+            //case OP_STR:
+                if (instr.load_store_op.f == EXTRA_REG_FUNCTION_PRE_INC) {
+                    registers[instr.load_store_op.a] += 4;
+                } else if (instr.load_store_op.f == EXTRA_REG_FUNCTION_PRE_DEC) {
+                    registers[instr.load_store_op.a] -= 4;
+                }
+
+                if (instr.load_store_op.ls == MEMORY_FUNCTION_STORE) {
+                    memcpy(memory_buffer + registers[instr.load_store_op.a] + instr.load_store_op.imm,
+                            &registers[instr.load_store_op.r], sizeof(int32_t));
+                } else {
+                    memcpy(&registers[instr.load_store_op.r],
+                           memory_buffer + registers[instr.load_store_op.a] + instr.load_store_op.imm, sizeof(int32_t));
+                }
+
+                if (instr.load_store_op.f == EXTRA_REG_FUNCTION_POST_INC) {
+                    registers[instr.load_store_op.a] += 4;
+                } else if (instr.load_store_op.f == EXTRA_REG_FUNCTION_POST_DEC) {
+                    registers[instr.load_store_op.a] -= 4;
+                }
+                break;
+
+            case OP_CALL:
+                registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
+                registers[AS_REGISTER_PC] = registers[instr.call_op.dst] + instr.call_op.imm;
+                break;
+
+            case OP_MOV:
+            //case OP_SHR:
+            //case OP_SHL:
+                if (instr.mov_op.lr == SHIFT_DIRECTION_LEFT && instr.mov_op.imm != 0) {
+                    evaluated = registers[instr.mov_op.src] << instr.mov_op.imm;
+                } else if (instr.mov_op.lr == SHIFT_DIRECTION_RIGHT && instr.mov_op.imm != 0) {
+                    evaluated = registers[instr.mov_op.src] >> instr.mov_op.imm;
+                } else {
+                    evaluated = registers[instr.mov_op.src];
+                }
+
+                registers[instr.mov_op.dst] = (int32_t)evaluated;
                 break;
 
             default:
                 break;
         }
+
+        if (instr.instruction.cf) {
+            switch(instr.instruction.opcode) {
+                case OP_ADD:
+                case OP_SUB:
+                case OP_MUL:
+                case OP_DIV:
+                case OP_TEST:
+                    write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){
+                            (int32_t)evaluated == 0,  // z
+                            evaluated > INT32_MAX || evaluated < INT32_MIN,  // o
+                            evaluated != (int32_t)evaluated,  // c
+                            evaluated < 0,  // n
+                            0,  // off
+                            0   // mask
+                    });
+                    break;
+            }
+        }
+
+
     }
 }

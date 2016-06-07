@@ -73,6 +73,7 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
         case OP_SUB:
         case OP_MUL:
         case OP_DIV:
+        case OP_CMP:
             READ_ARGS(2);
             if (arg[0].type != ARGUMENT_TYPE_REGISTER || arg[0].type == ARGUMENT_TYPE_ERROR) {
                 // error
@@ -97,7 +98,6 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
             }
             break;
 
-        case OP_CMP:
         case OP_AND:
         case OP_OR:
         case OP_NOT:
@@ -203,9 +203,9 @@ get_instruction(struct elf_context* context, const line_content_t *line_content)
                         instruction.mov_op.imm = 0;
                     }
                 } else if (arg[2].type == ARGUMENT_TYPE_IMMEDIATE) {
-                    instruction.call_op.imm = arg[2].value.ival;
+                    instruction.mov_op.imm = arg[2].value.uval;
                 } else {
-                    instruction.call_op.imm = 0;
+                    instruction.mov_op.imm = 0;
                 }
             }
 
