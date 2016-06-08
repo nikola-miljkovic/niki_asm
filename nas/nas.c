@@ -128,7 +128,6 @@ int main(int argc, char *argv[])
             case LINE_TYPE_INSTRUCTION:
             {
                 ASSERT_AND_EXIT(current_section != SYMBOL_SECTION_TEXT, "ERROR: Compilation failed at line (%d): Instruction outside of text section\n", i);
-
                 size = INSTRUCTION_SIZE;
                 location_counter[current_section] += size;
             } break;
@@ -151,6 +150,11 @@ int main(int argc, char *argv[])
                                              location_counter[current_section],
                                              size > 0 ? (uint32_t)size : 0);
             ASSERT_AND_EXIT(status < 0, "ERROR: Compilation failed at line (%d): Symbol '%s' is already defined\n", i, program_lines[i].label);
+        }
+
+        // hack
+        if (strutil_is_equal(program_lines[i].name, "ldc")) {
+            location_counter[current_section] += INSTRUCTION_SIZE;
         }
     }
 
@@ -219,8 +223,45 @@ int main(int argc, char *argv[])
             {
                 size = INSTRUCTION_SIZE;
                 union instruction instruction = get_instruction(&context, &program_lines[i]);
-                memcpy(binary_buffer[current_section] + location_counter[current_section],
-                       &instruction, (size_t)size);
+
+                //check special case
+                if (strutil_is_equal(program_lines[i].name, "ldc")) {
+                    if (strutil_is_empty(program_lines[i].args[0]) || strutil_is_empty(program_lines[i].args[0])) {
+
+                        // TODO: error
+                    }
+
+                    argument_info_t reg_arg = read_argument(program_lines[i].args[0]);
+                    int32_t const_arg = atoi(program_lines[i].args[1]);
+
+                    /* write in higher first then lower */
+                    instruction.instruction.opcode = OP_LDCH;
+                    instruction.instruction.condition = NONE;
+                    instruction.instruction.cf = 0;
+                    instruction.ldlh_op.c = (int32_t)(const_arg >> (sizeof(int32_t) / 2)*8);
+                    instruction.ldlh_op.dst = reg_arg.value.uval;
+                    instruction.ldlh_op.hl = PART_BYTE_HIGHER;
+
+                    memcpy(binary_buffer[current_section] + location_counter[current_section],
+                           &instruction, (size_t)size);
+
+                    /* write lower */
+                    instruction.instruction.opcode = OP_LDCL;
+                    instruction.instruction.condition = NONE;
+                    instruction.instruction.cf = 0;
+                    instruction.ldlh_op.c = (int32_t)const_arg;
+                    instruction.ldlh_op.dst = reg_arg.value.uval;
+                    instruction.ldlh_op.hl = PART_BYTE_LOWER;
+
+
+                    memcpy(binary_buffer[current_section] + location_counter[current_section] + INSTRUCTION_SIZE,
+                           &instruction, (size_t)size);
+                    size += INSTRUCTION_SIZE;
+                } else {
+                    memcpy(binary_buffer[current_section] + location_counter[current_section],
+                           &instruction, (size_t)size);
+                }
+
                 location_counter[current_section] += size;
             } break;
             default:

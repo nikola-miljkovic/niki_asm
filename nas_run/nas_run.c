@@ -12,26 +12,55 @@
 #include <string.h>
 #include <nas/nas.h>
 #include <nas/instruction.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
 
 #include "nas_run.h"
 #include "nas_util.h"
 #include "nas/instruction.h"
 #include "emulator.h"
 
-static union instruction end_instruction = {
-        .instruction.opcode = OP_CALL,
-        .instruction.cf = 0,
-        .instruction.condition = NONE,
-        .call_op.dst = 0,
-        .call_op.imm = INT16_MAX,
-};
+static union instruction end_instruction;
+static union instruction interrupt_routine_set_processor[4];
+static union instruction on_key_pressed[9];
 
 static int32_t registers[AS_REGISTER_END] = { 0 };
 static uint8_t* memory_buffer;
-static uint32_t ivt_table[IVT_ENTRIES];
 static int32_t io_memory[0x4000];
 
+void load_instructions();
+
+int kbhit(void)
+{
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    ch = getchar();
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if(ch != EOF)
+    {
+        ungetc(ch, stdin);
+        return 1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
+    load_instructions();
+
     if (argc <= 2) {
         printf("Error\n");
         exit(0);
@@ -155,16 +184,19 @@ int main(int argc, char *argv[]) {
     /* TODO: Add globals from script */
 
     int32_t globals_resolved = symtable_resolve_globals(final_context->symtable);
-    ASSERT_AND_EXIT(globals_resolved < 0, "LINKER ERROR: Cannot resolve global labels, some are defined more then once.");
+    ASSERT_AND_EXIT(globals_resolved < 0, "LINKER ERROR: Cannot resolve global labels, some are defined more then once.\n");
 
     /* Create memory */
     memory_buffer = malloc(sizeof(uint8_t) * MAX_USER_MEMORY);
     uint32_t memory_location_start = 0;
     uint32_t memory_location = memory_location_start;
-    uint32_t start_data = memory_location;
+    uint32_t start_ivt = memory_location;
+    uint32_t start_data = start_ivt + sizeof(uint32_t) * IVT_ENTRIES;
     uint32_t start_bss = 0;
     uint32_t start_text = 0;
 
+
+    memory_location = start_data;
     memcpy(memory_buffer + memory_location, final_context->data_section, final_context->data_size);
     memory_location += final_context->data_size;
 
@@ -176,16 +208,13 @@ int main(int argc, char *argv[]) {
 
     /* Find main label */
     struct sym_entry* main_label = symtable_get_symdata_by_name(final_context->symtable, ENTRY_POINT_LABEL);
-    ASSERT_AND_EXIT(main_label == NULL, "EMULATOR ERROR: No main found, exiting.");
+    ASSERT_AND_EXIT(main_label == NULL, "EMULATOR ERROR: No main found, exiting.\n");
 
     /* pint pc onto main label */
     registers[AS_REGISTER_PC] = memory_location + main_label->offset - 4;
 
     start_text = memory_location;
     memory_location += final_context->text_size;
-
-    write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){ 0, 0, 0, 0, 0, 0 });
-    registers[AS_REGISTER_SP] = memory_location;
 
     /* handle relocations */
     for (struct reloc_node *node = final_context->reloctable->head; node != NULL; node = node->next) {
@@ -206,7 +235,7 @@ int main(int argc, char *argv[]) {
             case OP_SUB:
             case OP_MUL:
             case OP_DIV:
-                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.");
+                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.\n");
                 if (symbol->section == SYMBOL_SECTION_DATA) {
                     symbol_val = read_int(memory_buffer + start_data + symbol->offset - symbol->size, symbol->size);
                 } else { /*BSS_SECTION*/
@@ -217,7 +246,7 @@ int main(int argc, char *argv[]) {
 
             case OP_LDR:
             //case OP_STR
-                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.");
+                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.\n");
                 if (symbol->section == SYMBOL_SECTION_DATA) {
                     symbol_val = read_int(memory_buffer + start_data + symbol->offset - symbol->size, symbol->size);
                 } else { /*BSS_SECTION*/
@@ -227,14 +256,14 @@ int main(int argc, char *argv[]) {
                 break;
 
             case OP_CALL:
-                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_FUNCTION, "ERROR: Symbol is not function type.");
+                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_FUNCTION, "ERROR: Symbol is not function type.\n");
                 instr.call_op.imm = start_text + symbol->offset - symbol->size;
                 break;
 
             case OP_MOV:
             //case OP_SHR:
             //case OP_SHL:
-                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.");
+                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.\n");
                 if (symbol->section == SYMBOL_SECTION_DATA) {
                     symbol_val = read_int(memory_buffer + start_data + symbol->offset - symbol->size, symbol->size);
                 } else { /*BSS_SECTION*/
@@ -244,7 +273,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             default:
-                ASSERT_AND_EXIT(1, "INVALID CODE");
+                ASSERT_AND_EXIT(1, "INVALID CODE\n");
                 break;
         }
 
@@ -252,9 +281,27 @@ int main(int argc, char *argv[]) {
         memcpy(memory_buffer + start_text + entry->offset, &instr, sizeof(union instruction));
     }
 
+    /* write to ivt position 0 */
+    memcpy(memory_buffer + start_ivt, &memory_location, sizeof(union instruction));
+
+    /* refresh entry point */
+    registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
+
+    /* read from ivt table */
+    memcpy(&registers[AS_REGISTER_PC],  memory_buffer + start_ivt, sizeof(union instruction));
+
+    /* add interrupt routines */
+    /* first is set processor flags */
+    for (int i = 0; i < 4; i += 1) {
+        memcpy(memory_buffer + memory_location, &interrupt_routine_set_processor[i], sizeof(union instruction));
+        memory_location += sizeof(union instruction);
+    }
+
+    registers[AS_REGISTER_SP] = memory_location;
+
     union instruction instr;
     int32_t evaluated_logic = NONE;
-    int64_t evaluated;
+    int64_t evaluated = 0;
 
     /* timers */
     const uint32_t time_interrupt_const = 1;
@@ -265,10 +312,37 @@ int main(int argc, char *argv[]) {
         memcpy(&instr, memory_buffer + registers[AS_REGISTER_PC], sizeof(union instruction));
         registers[AS_REGISTER_PC] += sizeof(union instruction);
 
-        if ((uint32_t)time(NULL) - time_interrupt_const > current_time ) {
+        if (kbhit()) {
+            // generate interrupt
+            // put LR and PSW on stack
+            uint32_t interrupt_address;
+            memcpy(&interrupt_address, memory_buffer + start_ivt + sizeof(uint32_t) * 3,
+                   sizeof(uint32_t));
+
+            memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(int32_t));
+            registers[AS_REGISTER_SP] += 4;
+            //memcpy(memory_buffer + registers[AS_REGISTER_SP]++, &registers[AS_REGISTER_LR], sizeof(int32_t));
+
+            registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
+            registers[AS_REGISTER_PC] = interrupt_address;
+        }
+
+        if ((uint32_t)time(NULL) - time_interrupt_const > current_time) {
             // generate interrupt and update time
-            printf("Sekund");
-            current_time = (uint32_t)time(NULL);
+            current_time = (uint32_t) time(NULL);
+            uint32_t interrupt_address;
+            memcpy(&interrupt_address, memory_buffer + start_ivt + sizeof(uint32_t) * 1,
+                                                sizeof(uint32_t));
+
+            if ((registers[AS_REGISTER_PSW] & 0x40000000) > 0 && interrupt_address > 0) {
+                // put LR and PSW on stack
+                memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(int32_t));
+                registers[AS_REGISTER_SP] += 4;
+                //memcpy(memory_buffer + registers[AS_REGISTER_SP]++, &registers[AS_REGISTER_LR], sizeof(int32_t));
+
+                registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
+                registers[AS_REGISTER_PC] = interrupt_address;
+            }
         }
 
         if (instr.instruction.opcode == end_instruction.instruction.opcode
@@ -295,9 +369,7 @@ int main(int argc, char *argv[]) {
                 memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(uint32_t));
                 registers[AS_REGISTER_SP] += 4;
                 registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
-                if (ivt_table[instr.int_op.src] > 0) {
-                    registers[AS_REGISTER_PC] = ivt_table[instr.int_op.src];
-                }
+                memcpy(&registers[AS_REGISTER_PC], memory_buffer + start_ivt + registers[instr.int_op.src], sizeof(uint32_t));
                 break;
 
             case OP_ADD:
@@ -341,6 +413,25 @@ int main(int argc, char *argv[]) {
                 }
                 break;
 
+            case OP_AND:
+                evaluated = registers[instr.logical_op.dst] & registers[instr.logical_op.src];
+                registers[instr.logical_op.dst] = evaluated;
+                break;
+
+            case OP_OR:
+                evaluated = registers[instr.logical_op.dst] | registers[instr.logical_op.src];
+                registers[instr.logical_op.dst] = evaluated;
+                break;
+
+            case OP_NOT:
+                evaluated = ~registers[instr.logical_op.src];
+                registers[instr.logical_op.dst] = evaluated;
+                break;
+
+            case OP_TEST:
+                evaluated = registers[instr.logical_op.dst] & registers[instr.logical_op.src];
+                break;
+
             case OP_IN:
             //case OP_OUT:
                 if(instr.io_op.io == IO_BIT_INPUT) {
@@ -351,7 +442,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     io_memory[registers[instr.io_op.src]] = registers[instr.io_op.dst];
                     if (registers[instr.io_op.src] == (int32_t)0x2000) {
-                        printf("%d", io_memory[registers[instr.io_op.src]]);
+                        printf("%d\n", io_memory[registers[instr.io_op.src]]);
                     }
                 }
                 break;
@@ -380,6 +471,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case OP_CALL:
+                memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(uint32_t));
                 registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
                 registers[AS_REGISTER_PC] = registers[instr.call_op.dst] + instr.call_op.imm;
                 break;
@@ -396,6 +488,28 @@ int main(int argc, char *argv[]) {
                 }
 
                 registers[instr.mov_op.dst] = (int32_t)evaluated;
+
+                if (instr.mov_op.dst == AS_REGISTER_PC) {
+                    // return psw from stack
+                    memcpy(&registers[AS_REGISTER_PSW], memory_buffer + registers[AS_REGISTER_SP], sizeof(int32_t));
+                    registers[AS_REGISTER_SP] -= 4;
+                }
+                break;
+
+            case OP_LDCH:
+            //case OP_LDCL:
+            {
+                int_lh val;
+                val.intv = registers[instr.ldlh_op.dst];
+
+                if (instr.ldlh_op.hl == PART_BYTE_HIGHER) {
+                    val.ints[1] = instr.ldlh_op.c;
+                } else {
+                    val.ints[0] = instr.ldlh_op.c;
+                }
+
+                registers[instr.ldlh_op.dst] = val.intv;
+            }
                 break;
 
             default:
@@ -406,9 +520,7 @@ int main(int argc, char *argv[]) {
             switch(instr.instruction.opcode) {
                 case OP_ADD:
                 case OP_SUB:
-                case OP_MUL:
-                case OP_DIV:
-                case OP_TEST:
+                case OP_CMP:
                     write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){
                             (int32_t)evaluated == 0,  // z
                             evaluated > INT32_MAX || evaluated < INT32_MIN,  // o
@@ -418,9 +530,139 @@ int main(int argc, char *argv[]) {
                             0   // mask
                     });
                     break;
+
+                case OP_MUL:
+                case OP_DIV:
+                    write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){
+                            (int32_t)evaluated == 0,  // z
+                            0,  // o
+                            0,  // c
+                            evaluated < 0,  // n
+                            0,  // off
+                            0   // mask
+                    });
+                    break;
+                case OP_AND:
+                case OP_OR:
+                case OP_NOT:
+                case OP_TEST:
+                    write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){
+                            (int32_t)evaluated == 0,  // z
+                            0,  // o
+                            0,  // c
+                            evaluated < 0,  // n
+                            0,  // off
+                            0   // mask
+                    });
+                    break;
+
+                default:
+                    break;
             }
         }
 
 
     }
+}
+
+void load_instructions() {
+    /* init instruction */
+    end_instruction.instruction.opcode = OP_CALL;
+    end_instruction.instruction.cf = 0;
+    end_instruction.instruction.condition = NONE;
+    end_instruction.call_op.dst = 0;
+    end_instruction.call_op.imm = INT16_MAX;
+
+    interrupt_routine_set_processor[0].instruction.opcode = OP_LDCH;
+    interrupt_routine_set_processor[0].instruction.cf = 0;
+    interrupt_routine_set_processor[0].instruction.condition = NONE;
+    interrupt_routine_set_processor[0].ldlh_op.dst = 0;
+    interrupt_routine_set_processor[0].ldlh_op.c = 0;
+    interrupt_routine_set_processor[0].ldlh_op.hl = PART_BYTE_HIGHER;
+
+    interrupt_routine_set_processor[1].instruction.opcode = OP_LDCH;
+    interrupt_routine_set_processor[1].instruction.cf = 0;
+    interrupt_routine_set_processor[1].instruction.condition = NONE;
+    interrupt_routine_set_processor[1].ldlh_op.dst = 0;
+    interrupt_routine_set_processor[1].ldlh_op.c = 0;
+    interrupt_routine_set_processor[1].ldlh_op.hl = PART_BYTE_LOWER;
+
+    interrupt_routine_set_processor[2].instruction.opcode = OP_MOV;
+    interrupt_routine_set_processor[2].instruction.cf = 0;
+    interrupt_routine_set_processor[2].instruction.condition = NONE;
+    interrupt_routine_set_processor[2].mov_op.src = 0;
+    interrupt_routine_set_processor[2].mov_op.dst = AS_REGISTER_PSW;
+
+    interrupt_routine_set_processor[3].instruction.opcode = OP_MOV;
+    interrupt_routine_set_processor[3].instruction.cf = 0;
+    interrupt_routine_set_processor[3].instruction.condition = NONE;
+    interrupt_routine_set_processor[3].mov_op.src = AS_REGISTER_LR;
+    interrupt_routine_set_processor[3].mov_op.dst = AS_REGISTER_PC;
+
+    /* Key press routine */
+
+    /* Write to 0x100*/
+    on_key_pressed[0].instruction.opcode = OP_LDCL;
+    on_key_pressed[0].instruction.cf = 0;
+    on_key_pressed[0].instruction.condition = NONE;
+    on_key_pressed[0].ldlh_op.hl = PART_BYTE_LOWER;
+    on_key_pressed[0].ldlh_op.dst = 1;
+    on_key_pressed[0].ldlh_op.c = 0x1000;
+
+    on_key_pressed[1].instruction.opcode = OP_LDCH;
+    on_key_pressed[1].instruction.cf = 0;
+    on_key_pressed[1].instruction.condition = NONE;
+    on_key_pressed[1].ldlh_op.hl = PART_BYTE_HIGHER;
+    on_key_pressed[1].ldlh_op.dst = 1;
+    on_key_pressed[1].ldlh_op.c = 0;
+
+    on_key_pressed[2].instruction.opcode = OP_IN;
+    on_key_pressed[2].instruction.cf = 0;
+    on_key_pressed[2].instruction.condition = NONE;
+    on_key_pressed[2].io_op.io = IO_BIT_INPUT;
+    on_key_pressed[2].io_op.src = 1;
+    on_key_pressed[2].io_op.dst = 0;
+
+    /* write 10th bit to 0x1010 */
+    on_key_pressed[3].instruction.opcode = OP_LDCL;
+    on_key_pressed[3].instruction.cf = 0;
+    on_key_pressed[3].instruction.condition = NONE;
+    on_key_pressed[3].ldlh_op.hl = PART_BYTE_LOWER;
+    on_key_pressed[3].ldlh_op.dst = 2;
+    on_key_pressed[3].ldlh_op.c = 0x1010;
+
+    on_key_pressed[4].instruction.opcode = OP_LDCH;
+    on_key_pressed[4].instruction.cf = 0;
+    on_key_pressed[4].instruction.condition = NONE;
+    on_key_pressed[4].ldlh_op.hl = PART_BYTE_HIGHER;
+    on_key_pressed[4].ldlh_op.dst = 2;
+    on_key_pressed[4].ldlh_op.c = 0;
+
+    /* set 10th bit of reg #3 to 1 0x0400 */
+    on_key_pressed[5].instruction.opcode = OP_LDCL;
+    on_key_pressed[5].instruction.cf = 0;
+    on_key_pressed[5].instruction.condition = NONE;
+    on_key_pressed[5].ldlh_op.hl = PART_BYTE_LOWER;
+    on_key_pressed[5].ldlh_op.dst = 3;
+    on_key_pressed[5].ldlh_op.c = 0x0400;
+
+    on_key_pressed[6].instruction.opcode = OP_LDCH;
+    on_key_pressed[6].instruction.cf = 0;
+    on_key_pressed[6].instruction.condition = NONE;
+    on_key_pressed[6].ldlh_op.hl = PART_BYTE_HIGHER;
+    on_key_pressed[6].ldlh_op.dst = 3;
+    on_key_pressed[6].ldlh_op.c = 0;
+
+    on_key_pressed[7].instruction.opcode = OP_OUT;
+    on_key_pressed[7].instruction.cf = 0;
+    on_key_pressed[7].instruction.condition = NONE;
+    on_key_pressed[7].io_op.io = IO_BIT_INPUT;
+    on_key_pressed[7].io_op.src = 2;
+    on_key_pressed[7].io_op.dst = 3;
+
+    /* Pop stack */
+    on_key_pressed[8].instruction.opcode = OP_LDR;
+    on_key_pressed[8].instruction.cf = 0;
+    on_key_pressed[8].instruction.condition = NONE;
+    on_key_pressed[8].load_store_op.a = AS_REGISTER_PC;
 }

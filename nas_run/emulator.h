@@ -21,6 +21,11 @@ typedef struct {
     uint32_t mask:1;
 } psw_t;
 
+typedef union {
+    int32_t intv;
+    int16_t ints[2];
+} int_lh;
+
 void write_psw_to_reg(int32_t* psw_reg, psw_t psw);
 psw_t get_psw(int32_t* psw_reg);
 

@@ -191,8 +191,8 @@ enum as_register {
     AS_REGISTER_GENERAL_END = 0xA + 1,
 
     AS_REGISTER_PC  = 0x10,
-    AS_REGISTER_SP  = 0x11,
-    AS_REGISTER_LR  = 0x12,
+    AS_REGISTER_LR  = 0x11,
+    AS_REGISTER_SP  = 0x12,
     AS_REGISTER_PSW = 0x13,
 
     AS_REGISTER_END = 0x14,

@@ -38,7 +38,7 @@ int32_t get_directive_size(const line_content_t* line_content) {
     if (strutil_is_equal(directive_info[i].directive, DIRECTIVE_NAME_SKIP)) {
         return atoi(line_content->args[0]);
     }
-    // TODO: add align
+
     return 0;
 }
 
@@ -280,6 +280,8 @@ void read_operation(union instruction* instruction_ptr, const char *name_str) {
             }
         }
     }
+
+
 }
 
 argument_info_t
