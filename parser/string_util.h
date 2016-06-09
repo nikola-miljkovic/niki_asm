@@ -12,5 +12,14 @@ int32_t strutil_is_equal(const char* str1, const char* str2);
 int32_t strutil_consists_of(const char* str1, const char* part1, const char* part2);
 int32_t strutil_is_empty(const char* str1);
 int32_t strutil_begins_with(const char* str1, const char* str2);
+char *strutil_trim(char *str);
 
+enum string_types {
+    STRING_TYPE_ALIGN,
+    STRING_TYPE_NUMBER,
+    STRING_TYPE_SYMBOL,
+    STRING_TYPE_UNKNOWN,
+};
+
+int32_t check_type(char* str);
 #endif //NIKI_ASM_STRING_UTIL_H

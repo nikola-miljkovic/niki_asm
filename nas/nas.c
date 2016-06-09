@@ -276,9 +276,11 @@ int main(int argc, char *argv[])
 
     // create reloc table buffer and dump data to it
     size_t reloctable_size = context.reloctable->length * sizeof(struct reloc_entry);
-    uint8_t* reloctable_buffer = malloc(reloctable_size);
-    reloc_table_dump_to_buffer(context.reloctable, reloctable_buffer);
-
+    uint8_t *reloctable_buffer = NULL;
+    if (reloctable_size > 0) {
+        reloctable_buffer = malloc(reloctable_size);
+        reloc_table_dump_to_buffer(context.reloctable, reloctable_buffer);
+    }
     /* Create output data and write it! */
     struct elf output;
     uint32_t elf_size = sizeof(struct elf);
@@ -296,7 +298,10 @@ int main(int argc, char *argv[])
     memcpy(output_buffer + output.data_start, binary_buffer[SYMBOL_SECTION_DATA], location_counter[SYMBOL_SECTION_DATA]);
     memcpy(output_buffer + output.text_start, binary_buffer[SYMBOL_SECTION_TEXT], location_counter[SYMBOL_SECTION_TEXT]);
     memcpy(output_buffer + output.symbol_start, symtable_buffer, symtable_size);
-    memcpy(output_buffer + output.reloc_start, reloctable_buffer, reloctable_size);
+
+    if (reloctable_size > 0) {
+        memcpy(output_buffer + output.reloc_start, reloctable_buffer, reloctable_size);
+    }
 
     fwrite(output_buffer, sizeof(uint8_t), elf_size + output.size, fp_output);
 

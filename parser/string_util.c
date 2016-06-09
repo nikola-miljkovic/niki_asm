@@ -4,7 +4,9 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include "string_util.h"
+#include "parser.h"
 
 int32_t strutil_is_equal(const char *str1, const char *str2) {
     size_t len = strlen(str1);
@@ -49,6 +51,41 @@ int32_t strutil_begins_with(const char* str1, const char* str2) {
     return lenstr < lenpre ? false : strncmp(str1, str2, lenpre) == 0;
 }
 
+char *strutil_trim(char* str) {
+    char *end;
 
+    // Trim leading space
+    while (isspace(*str)) str++;
 
+    if (*str == 0)  // All spaces?
+        return str;
 
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while (end > str && isspace(*end)) end--;
+
+    // Write new null terminator
+    *(end + 1) = 0;
+
+    return str;
+}
+
+int32_t check_type(char* str) {
+    int32_t string_type = STRING_TYPE_UNKNOWN;
+
+    // TODO: Proper implementation
+    if (isdigit(str[0])) {
+        string_type = STRING_TYPE_NUMBER;
+    } else if (isalnum(str[0]) || strutil_is_equal(".", str)) {
+        string_type = STRING_TYPE_SYMBOL;
+    }
+
+    return string_type;
+    /*for (int i = 0; i < strlen(str); i += 1) {
+        if (isdigit(str[i])) {
+            string_type = STRING_TYPE_NUMBER;
+        } else if (isalnum(str[i])) {
+            string_type = STRING_TYPE_SYMBOL;
+        }
+    }*/
+}

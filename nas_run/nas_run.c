@@ -15,6 +15,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <parser/string_util.h>
+#include <parser/parser.h>
+#include <nas/as.h>
 
 #include "nas_run.h"
 #include "nas_util.h"
@@ -181,40 +184,106 @@ int main(int argc, char *argv[]) {
     final_context->data_size = data_offset;
     final_context->bss_size = bss_offset;
 
-    /* TODO: Add globals from script */
+    /* Create memory */
+    memory_buffer = malloc(sizeof(uint8_t) * MAX_USER_MEMORY);
+    script_content_t script_content[100];
+    int script_len = parse_script(argv[1], script_content);
+
+    uint32_t memory_location = 0;
+    uint32_t start_ivt = 0;
+    memory_location += start_ivt + sizeof(uint32_t) * IVT_ENTRIES;
+    uint32_t start_data = 0;
+    uint32_t start_bss = 0;
+    uint32_t start_text = 0;
+
+    script_global_table_t* global_table = create_script_global();
+    add_script_global(global_table, ".", memory_location);
+
+    for (int i = 0; i < script_len; i += 1) {
+        /* update */
+        if (script_content[i].type == SCRIPT_CONTENT_SECTION) {
+
+            if (strutil_is_equal(script_content[i].name, SECTION_NAME_TEXT)) {
+                start_text = memory_location;
+                memory_location += final_context->text_size;
+            } else if (strutil_is_equal(script_content[i].name, SECTION_NAME_BSS)) {
+                start_bss = memory_location;
+                memory_location += final_context->bss_size;
+            } else if (strutil_is_equal(script_content[i].name, SECTION_NAME_DATA)) {
+                start_bss = memory_location;
+                memory_location += final_context->data_size;
+            }
+
+            add_script_global(global_table, ".", memory_location);
+        } else if (script_content[i].type == SCRIPT_CONTENT_EXPRESSION) {
+            /* calculate expression */
+            if (script_content[i].arguments == 1) {
+                int32_t symbol_value = 0;
+                int32_t argument_type = check_type(script_content[i].args[0]);
+
+                // check if its align?
+                if (argument_type == STRING_TYPE_SYMBOL) {
+                    script_global_t* val = get_script_global(global_table, script_content[i].args[0]);
+                    ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
+                    symbol_value = val->value;
+                } else if (argument_type == STRING_TYPE_NUMBER) {
+                    symbol_value = atoi(script_content[i].args[0]);
+                }
+
+                add_script_global(global_table, script_content[i].name, symbol_value);
+            } else {
+                /* check first */
+                int32_t symbol_value = 0;
+                int32_t argument_type = check_type(script_content[i].args[0]);
+                if (argument_type == STRING_TYPE_SYMBOL) {
+                    script_global_t* val = get_script_global(global_table, script_content[i].args[0]);
+                    ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
+                    symbol_value = val->value;
+                } else if (argument_type == STRING_TYPE_NUMBER) {
+                    symbol_value = atoi(script_content[i].args[0]);
+                }
+
+                int32_t argument_value = 0;
+                for (int j = 0; j < script_content[i].operators; j += 1) {
+                    argument_type = check_type(script_content[i].args[j - 1]);
+                    if (argument_type == STRING_TYPE_SYMBOL) {
+                        script_global_t* val = get_script_global(global_table, script_content[i].args[j + 1]);
+                        ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
+                        argument_value = val->value;
+                    } else if (argument_type == STRING_TYPE_NUMBER) {
+                        argument_value = atoi(script_content[i].args[j + 1]);
+                    }
+
+                    switch(script_content[i].op[j]) {
+                        case '+':
+                            symbol_value += argument_value;
+                            break;
+                        case '-':
+                            symbol_value -= argument_value;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                add_script_global(global_table, script_content[i].name, symbol_value);
+            }
+        }
+    }
 
     int32_t globals_resolved = symtable_resolve_globals(final_context->symtable);
     ASSERT_AND_EXIT(globals_resolved < 0, "LINKER ERROR: Cannot resolve global labels, some are defined more then once.\n");
 
-    /* Create memory */
-    memory_buffer = malloc(sizeof(uint8_t) * MAX_USER_MEMORY);
-    uint32_t memory_location_start = 0;
-    uint32_t memory_location = memory_location_start;
-    uint32_t start_ivt = memory_location;
-    uint32_t start_data = start_ivt + sizeof(uint32_t) * IVT_ENTRIES;
-    uint32_t start_bss = 0;
-    uint32_t start_text = 0;
-
-
-    memory_location = start_data;
-    memcpy(memory_buffer + memory_location, final_context->data_section, final_context->data_size);
-    memory_location += final_context->data_size;
-
-    memcpy(memory_buffer + memory_location, final_context->bss_section, final_context->bss_size);
-    start_bss = memory_location;
-    memory_location += final_context->bss_size;
-
-    memcpy(memory_buffer + memory_location, final_context->text_section, final_context->text_size);
+    memcpy(memory_buffer + start_data, final_context->data_section, final_context->data_size);
+    memcpy(memory_buffer + start_bss, final_context->bss_section, final_context->bss_size);
+    memcpy(memory_buffer + start_text, final_context->text_section, final_context->text_size);
 
     /* Find main label */
     struct sym_entry* main_label = symtable_get_symdata_by_name(final_context->symtable, ENTRY_POINT_LABEL);
     ASSERT_AND_EXIT(main_label == NULL, "EMULATOR ERROR: No main found, exiting.\n");
 
     /* pint pc onto main label */
-    registers[AS_REGISTER_PC] = memory_location + main_label->offset - 4;
-
-    start_text = memory_location;
-    memory_location += final_context->text_size;
+    registers[AS_REGISTER_PC] = start_text + main_label->offset - 4;
 
     /* handle relocations */
     for (struct reloc_node *node = final_context->reloctable->head; node != NULL; node = node->next) {
@@ -288,7 +357,7 @@ int main(int argc, char *argv[]) {
     registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
 
     /* read from ivt table */
-    memcpy(&registers[AS_REGISTER_PC],  memory_buffer + start_ivt, sizeof(union instruction));
+    registers[AS_REGISTER_PC] = memory_location;
 
     /* add interrupt routines */
     /* first is set processor flags */
@@ -306,6 +375,7 @@ int main(int argc, char *argv[]) {
     /* timers */
     const uint32_t time_interrupt_const = 1;
     uint32_t current_time = (uint32_t)time(NULL);
+    psw_t psw = get_psw(&registers[AS_REGISTER_PSW]);
 
     /* EXECUTE code */
     while (1) {
@@ -318,6 +388,11 @@ int main(int argc, char *argv[]) {
             uint32_t interrupt_address;
             memcpy(&interrupt_address, memory_buffer + start_ivt + sizeof(uint32_t) * 3,
                    sizeof(uint32_t));
+
+            /* skip serving interrupt */
+            if (interrupt_address == 0) {
+                continue;
+            }
 
             memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(int32_t));
             registers[AS_REGISTER_SP] += 4;
@@ -335,13 +410,15 @@ int main(int argc, char *argv[]) {
                                                 sizeof(uint32_t));
 
             if ((registers[AS_REGISTER_PSW] & 0x40000000) > 0 && interrupt_address > 0) {
-                // put LR and PSW on stack
+                // put PSW on stack
                 memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(int32_t));
                 registers[AS_REGISTER_SP] += 4;
                 //memcpy(memory_buffer + registers[AS_REGISTER_SP]++, &registers[AS_REGISTER_LR], sizeof(int32_t));
 
                 registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
                 registers[AS_REGISTER_PC] = interrupt_address;
+            } else {
+                printf("Timer");
             }
         }
 
@@ -361,8 +438,6 @@ int main(int argc, char *argv[]) {
                 continue;
             }
         }
-
-
 
         switch (instr.instruction.opcode) {
             case OP_INT:
@@ -436,6 +511,10 @@ int main(int argc, char *argv[]) {
             //case OP_OUT:
                 if(instr.io_op.io == IO_BIT_INPUT) {
                     if (registers[instr.io_op.src] == 0x1000) {
+                        if (!kbhit()) {
+                            registers[AS_REGISTER_PC] -= INSTRUCTION_SIZE;
+                            continue;
+                        }
                         io_memory[registers[instr.io_op.src]] = getchar();
                     }
                     registers[instr.io_op.dst] = io_memory[registers[instr.io_op.src]];
@@ -521,39 +600,24 @@ int main(int argc, char *argv[]) {
                 case OP_ADD:
                 case OP_SUB:
                 case OP_CMP:
-                    write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){
-                            (int32_t)evaluated == 0,  // z
-                            evaluated > INT32_MAX || evaluated < INT32_MIN,  // o
-                            evaluated != (int32_t)evaluated,  // c
-                            evaluated < 0,  // n
-                            0,  // off
-                            0   // mask
-                    });
+                    psw = get_psw(&registers[AS_REGISTER_PSW]);
+                    psw.z = (int32_t)evaluated == 0;
+                    psw.o = evaluated > INT32_MAX || evaluated < INT32_MIN;
+                    psw.c = evaluated != (int32_t)evaluated;
+                    psw.n = evaluated < 0;
+                    write_psw_to_reg(&registers[AS_REGISTER_PSW], psw);
                     break;
 
                 case OP_MUL:
                 case OP_DIV:
-                    write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){
-                            (int32_t)evaluated == 0,  // z
-                            0,  // o
-                            0,  // c
-                            evaluated < 0,  // n
-                            0,  // off
-                            0   // mask
-                    });
-                    break;
                 case OP_AND:
                 case OP_OR:
                 case OP_NOT:
                 case OP_TEST:
-                    write_psw_to_reg(&registers[AS_REGISTER_PSW], (psw_t){
-                            (int32_t)evaluated == 0,  // z
-                            0,  // o
-                            0,  // c
-                            evaluated < 0,  // n
-                            0,  // off
-                            0   // mask
-                    });
+                    psw = get_psw(&registers[AS_REGISTER_PSW]);
+                    psw.z = (int32_t)evaluated == 0;
+                    psw.n = evaluated < 0;
+                    write_psw_to_reg(&registers[AS_REGISTER_PSW], psw);
                     break;
 
                 default:

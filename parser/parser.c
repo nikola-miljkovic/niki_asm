@@ -3,6 +3,7 @@
 #include <ctype.h>
 
 #include "parser.h"
+#include "string_util.h"
 
 int
 parse_file(FILE *fp, line_content_t *program_lines, size_t program_lines_length)
@@ -195,11 +196,80 @@ read_instruction(const char *line, line_content_t *line_content)
     return ret_code;
 }
 
+int parse_script(char* file_name, script_content_t *script_content) {
+    FILE * fp;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    int i = 0;
+
+    fp = fopen(file_name, "r");
+    if (fp != NULL) {
+        for(;(read = getline(&line, &len, fp)) != -1; i += 1) {
+            script_content[i].type = SCRIPT_CONTENT_NONE;
+
+            if (strlen(line) == 0) {
+                continue;
+            }
+
+            for (int j = 0; j < strlen(line); j+=1) {
+                if (line[j] == '\n') {
+                    line[j] = '\0';
+                }
+            }
+
+            if (line[0] == '.' && isalpha(line[1])) {
+                // this is section
+                strcpy(script_content[i].name, line + 1);
+                script_content[i].type = SCRIPT_CONTENT_SECTION;
+            } else {
+                // this is not section
+                size_t last_position = 0;
+                size_t argument = 0;
+                size_t operator = 0;
+
+                for (int j = 0; j < strlen(line); j+=1) {
+                    if (line[j] == '=') {
+                        strncpy(script_content[i].name, line, (size_t)j);
+                        strncpy(script_content[i].name,
+                                strutil_trim(script_content[i].name),
+                                j - last_position - 1);
+                        script_content[i].type = SCRIPT_CONTENT_EXPRESSION;
+                        last_position = (size_t)j;
+                    } else {
+                        if (line[j] == '+' || line[j] == '-') {
+                            strncpy(script_content[i].args[argument++], line + last_position + 1, j - last_position - 1);
+                            strncpy(script_content[i].args[argument - 1],
+                                    strutil_trim(script_content[i].args[argument - 1]),
+                                    j - last_position - 1);
+
+                            script_content[i].op[operator++] = line[j];
+                            last_position = (size_t)j;
+                        }
+                    }
+                }
+
+                if (script_content[i].type == SCRIPT_CONTENT_EXPRESSION) {
+                    strncpy(script_content[i].args[argument++], line + last_position + 1, strlen(line) - last_position - 1);
+                    strncpy(script_content[i].args[argument - 1],
+                            strutil_trim(script_content[i].args[argument - 1]),
+                            strlen(line) - last_position - 1);
+                }
+
+                script_content[i].arguments = argument;
+                script_content[i].operators = operator;
+            }
+        }
+    }
+
+    fclose(fp);
+    return i;
+}
+
 int isdot(int v) { return v == '.'; }
 int iscoma(int v) { return v == ','; }
 int isalnumsymbol(int v) { return (isalnum(v) || v == '+' || v == '-'); }
 int iscomaorminus(int v) { return (iscoma(v) || v == '-'); }
-
 
 
 
