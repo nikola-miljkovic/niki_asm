@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "string_util.h"
 #include "parser.h"
 
@@ -74,18 +75,36 @@ int32_t check_type(char* str) {
     int32_t string_type = STRING_TYPE_UNKNOWN;
 
     // TODO: Proper implementation
-    if (isdigit(str[0])) {
+    if (strutil_begins_with("align(", str)) {
+        string_type = STRING_TYPE_ALIGN;
+    } else if (isdigit(str[0])) {
         string_type = STRING_TYPE_NUMBER;
     } else if (isalnum(str[0]) || strutil_is_equal(".", str)) {
         string_type = STRING_TYPE_SYMBOL;
     }
 
     return string_type;
-    /*for (int i = 0; i < strlen(str); i += 1) {
-        if (isdigit(str[i])) {
-            string_type = STRING_TYPE_NUMBER;
-        } else if (isalnum(str[i])) {
-            string_type = STRING_TYPE_SYMBOL;
-        }
-    }*/
+}
+
+char *get_align_symbol(char* arg) {
+    char *align_symbol;
+
+    while(*arg != '(') arg++;
+
+    align_symbol = arg + 1;
+
+    while(*arg != ',') arg++;
+
+    *arg = '\0';
+
+    return align_symbol;
+}
+
+uint32_t get_align_number(char* arg) {
+    while(*arg != ',') arg++;
+    arg++;
+
+    *(strlen(arg) + arg) = '\0';
+
+    return (uint32_t)atoi(arg);
 }

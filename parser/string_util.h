@@ -22,4 +22,7 @@ enum string_types {
 };
 
 int32_t check_type(char* str);
+char    *get_align_symbol(char* arg);
+uint32_t get_align_number(char* arg);
+
 #endif //NIKI_ASM_STRING_UTIL_H

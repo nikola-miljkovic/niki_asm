@@ -202,6 +202,8 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < script_len; i += 1) {
         /* update */
         if (script_content[i].type == SCRIPT_CONTENT_SECTION) {
+            script_global_t* val = get_script_global(global_table, ".");
+            memory_location = (uint32_t)val->value;
 
             if (strutil_is_equal(script_content[i].name, SECTION_NAME_TEXT)) {
                 start_text = memory_location;
@@ -217,57 +219,57 @@ int main(int argc, char *argv[]) {
             add_script_global(global_table, ".", memory_location);
         } else if (script_content[i].type == SCRIPT_CONTENT_EXPRESSION) {
             /* calculate expression */
-            if (script_content[i].arguments == 1) {
-                int32_t symbol_value = 0;
-                int32_t argument_type = check_type(script_content[i].args[0]);
+            /* check first */
+            int32_t symbol_value = 0;
+            int32_t argument_type = check_type(script_content[i].args[0]);
 
-                // check if its align?
-                if (argument_type == STRING_TYPE_SYMBOL) {
-                    script_global_t* val = get_script_global(global_table, script_content[i].args[0]);
-                    ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
-                    symbol_value = val->value;
-                } else if (argument_type == STRING_TYPE_NUMBER) {
-                    symbol_value = atoi(script_content[i].args[0]);
-                }
+            // check if its align?
+            if (argument_type == STRING_TYPE_SYMBOL) {
+                script_global_t *val = get_script_global(global_table, script_content[i].args[0]);
+                ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
+                symbol_value = val->value;
+            } else if (argument_type == STRING_TYPE_NUMBER) {
+                symbol_value = atoi(script_content[i].args[0]);
+            } else if (argument_type == STRING_TYPE_ALIGN) {
+                uint32_t align_num = get_align_number(script_content[i].args[0]);
+                char *align_symbol = get_align_symbol(script_content[i].args[0]);
 
-                add_script_global(global_table, script_content[i].name, symbol_value);
-            } else {
-                /* check first */
-                int32_t symbol_value = 0;
-                int32_t argument_type = check_type(script_content[i].args[0]);
-                if (argument_type == STRING_TYPE_SYMBOL) {
-                    script_global_t* val = get_script_global(global_table, script_content[i].args[0]);
-                    ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
-                    symbol_value = val->value;
-                } else if (argument_type == STRING_TYPE_NUMBER) {
-                    symbol_value = atoi(script_content[i].args[0]);
-                }
-
-                int32_t argument_value = 0;
-                for (int j = 0; j < script_content[i].operators; j += 1) {
-                    argument_type = check_type(script_content[i].args[j - 1]);
-                    if (argument_type == STRING_TYPE_SYMBOL) {
-                        script_global_t* val = get_script_global(global_table, script_content[i].args[j + 1]);
-                        ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
-                        argument_value = val->value;
-                    } else if (argument_type == STRING_TYPE_NUMBER) {
-                        argument_value = atoi(script_content[i].args[j + 1]);
-                    }
-
-                    switch(script_content[i].op[j]) {
-                        case '+':
-                            symbol_value += argument_value;
-                            break;
-                        case '-':
-                            symbol_value -= argument_value;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                add_script_global(global_table, script_content[i].name, symbol_value);
+                /* find symbol value */
+                script_global_t *val = get_script_global(global_table, align_symbol);
+                ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
+                uint32_t mod = val->value % align_num;
+                symbol_value = val->value + align_num - mod;
             }
+
+            if (script_content[i].arguments == 1) {
+                add_script_global(global_table, script_content[i].name, symbol_value);
+                continue;
+            }
+
+            int32_t argument_value = 0;
+            for (int j = 0; j < script_content[i].operators; j += 1) {
+                argument_type = check_type(script_content[i].args[j + 1]);
+                if (argument_type == STRING_TYPE_SYMBOL) {
+                    script_global_t *val = get_script_global(global_table, script_content[i].args[j + 1]);
+                    ASSERT_AND_EXIT(val == NULL, "Error: undefined symbol.");
+                    argument_value = val->value;
+                } else if (argument_type == STRING_TYPE_NUMBER) {
+                    argument_value = atoi(script_content[i].args[j + 1]);
+                }
+
+                switch (script_content[i].op[j]) {
+                    case '+':
+                        symbol_value += argument_value;
+                        break;
+                    case '-':
+                        symbol_value -= argument_value;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            add_script_global(global_table, script_content[i].name, symbol_value);
         }
     }
 
@@ -287,39 +289,51 @@ int main(int argc, char *argv[]) {
 
     /* handle relocations */
     for (struct reloc_node *node = final_context->reloctable->head; node != NULL; node = node->next) {
+        int32_t symbol_val = 0;
+        script_global_t* script_symbol = NULL;
         struct reloc_entry *entry = node->value;
 
         /* find index in symtable */
         struct sym_entry* symbol = symtable_get_symdata(final_context->symtable, entry->index);
         if (symbol == NULL) {
-            // ERROR
+            ASSERT_AND_EXIT(1, "Unknown Symbol\n");
+        } else if (symbol->section == SYMBOL_SECTION_NONE
+                     && symbol ->type == SYMBOL_TYPE_EXTERN) {
+            script_symbol = get_script_global(global_table, symbol->name);
+            if (script_symbol == NULL) {
+                // ERROR
+            }
+            symbol_val = script_symbol->value;
         }
 
         union instruction instr;
         memcpy(&instr, memory_buffer + start_text + entry->offset, sizeof(union instruction));
 
-        int32_t symbol_val;
         switch(instr.instruction.opcode) {
             case OP_ADD:
             case OP_SUB:
             case OP_MUL:
             case OP_DIV:
-                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.\n");
-                if (symbol->section == SYMBOL_SECTION_DATA) {
-                    symbol_val = read_int(memory_buffer + start_data + symbol->offset - symbol->size, symbol->size);
-                } else { /*BSS_SECTION*/
-                    symbol_val = read_int(memory_buffer + start_bss + symbol->offset, symbol->size);
+                if (script_symbol == NULL) {
+                    ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.\n");
+                    if (symbol->section == SYMBOL_SECTION_DATA) {
+                        symbol_val = read_int(memory_buffer + start_data + symbol->offset - symbol->size, symbol->size);
+                    } else { /*BSS_SECTION*/
+                        symbol_val = read_int(memory_buffer + start_bss + symbol->offset, symbol->size);
+                    }
                 }
                 instr.arithmetic_op_imm.imm = symbol_val;
                 break;
 
             case OP_LDR:
             //case OP_STR
-                ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.\n");
-                if (symbol->section == SYMBOL_SECTION_DATA) {
-                    symbol_val = read_int(memory_buffer + start_data + symbol->offset - symbol->size, symbol->size);
-                } else { /*BSS_SECTION*/
-                    symbol_val = read_int(memory_buffer + start_bss + symbol->offset, symbol->size);
+                if (script_symbol == NULL) {
+                    ASSERT_AND_EXIT(symbol->type != SYMBOL_TYPE_DATA, "ERROR: Symbol is not data type.\n");
+                    if (symbol->section == SYMBOL_SECTION_DATA) {
+                        symbol_val = read_int(memory_buffer + start_data + symbol->offset - symbol->size, symbol->size);
+                    } else { /*BSS_SECTION*/
+                        symbol_val = read_int(memory_buffer + start_bss + symbol->offset, symbol->size);
+                    }
                 }
                 instr.load_store_op.imm = symbol_val;
                 break;
@@ -417,8 +431,6 @@ int main(int argc, char *argv[]) {
 
                 registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
                 registers[AS_REGISTER_PC] = interrupt_address;
-            } else {
-                printf("Timer");
             }
         }
 

@@ -239,9 +239,11 @@ int parse_script(char* file_name, script_content_t *script_content) {
                     } else {
                         if (line[j] == '+' || line[j] == '-') {
                             strncpy(script_content[i].args[argument++], line + last_position + 1, j - last_position - 1);
-                            strncpy(script_content[i].args[argument - 1],
-                                    strutil_trim(script_content[i].args[argument - 1]),
-                                    j - last_position - 1);
+                            char* trimmed = strutil_trim(script_content[i].args[argument - 1]);
+
+                            for (int k = 0; k <= strlen(trimmed); k += 1) {
+                                script_content[i].args[argument - 1][k] = trimmed[k];
+                            }
 
                             script_content[i].op[operator++] = line[j];
                             last_position = (size_t)j;
@@ -251,9 +253,11 @@ int parse_script(char* file_name, script_content_t *script_content) {
 
                 if (script_content[i].type == SCRIPT_CONTENT_EXPRESSION) {
                     strncpy(script_content[i].args[argument++], line + last_position + 1, strlen(line) - last_position - 1);
-                    strncpy(script_content[i].args[argument - 1],
-                            strutil_trim(script_content[i].args[argument - 1]),
-                            strlen(line) - last_position - 1);
+                    char* trimmed = strutil_trim(script_content[i].args[argument - 1]);
+
+                    for (int k = 0; k <= strlen(trimmed); k += 1) {
+                        script_content[i].args[argument - 1][k] = trimmed[k];
+                    }
                 }
 
                 script_content[i].arguments = argument;
