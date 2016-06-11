@@ -1,0 +1,10 @@
+.text.main
+.text.infloop
+.text
+.bss
+.data
+
+
+. = .+10
+var = .
+prom = align(var,7)+25
