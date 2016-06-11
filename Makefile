@@ -206,155 +206,263 @@ nas_run/fast:
 	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/build
 .PHONY : nas_run/fast
 
-# target to build an object file
-nas/as.o:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/as.o
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/as.o
+nas/as.o: nas/as.c.o
+
 .PHONY : nas/as.o
 
-# target to preprocess a source file
-nas/as.i:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/as.i
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/as.i
+# target to build an object file
+nas/as.c.o:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/as.c.o
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/as.c.o
+.PHONY : nas/as.c.o
+
+nas/as.i: nas/as.c.i
+
 .PHONY : nas/as.i
 
-# target to generate assembly for a file
-nas/as.s:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/as.s
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/as.s
+# target to preprocess a source file
+nas/as.c.i:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/as.c.i
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/as.c.i
+.PHONY : nas/as.c.i
+
+nas/as.s: nas/as.c.s
+
 .PHONY : nas/as.s
 
-# target to build an object file
-nas/nas.o:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/nas.o
+# target to generate assembly for a file
+nas/as.c.s:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/as.c.s
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/as.c.s
+.PHONY : nas/as.c.s
+
+nas/nas.o: nas/nas.c.o
+
 .PHONY : nas/nas.o
 
-# target to preprocess a source file
-nas/nas.i:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/nas.i
+# target to build an object file
+nas/nas.c.o:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/nas.c.o
+.PHONY : nas/nas.c.o
+
+nas/nas.i: nas/nas.c.i
+
 .PHONY : nas/nas.i
 
-# target to generate assembly for a file
-nas/nas.s:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/nas.s
+# target to preprocess a source file
+nas/nas.c.i:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/nas.c.i
+.PHONY : nas/nas.c.i
+
+nas/nas.s: nas/nas.c.s
+
 .PHONY : nas/nas.s
 
-# target to build an object file
-nas/reloc.o:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/reloc.o
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/reloc.o
+# target to generate assembly for a file
+nas/nas.c.s:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/nas.c.s
+.PHONY : nas/nas.c.s
+
+nas/reloc.o: nas/reloc.c.o
+
 .PHONY : nas/reloc.o
 
-# target to preprocess a source file
-nas/reloc.i:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/reloc.i
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/reloc.i
+# target to build an object file
+nas/reloc.c.o:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/reloc.c.o
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/reloc.c.o
+.PHONY : nas/reloc.c.o
+
+nas/reloc.i: nas/reloc.c.i
+
 .PHONY : nas/reloc.i
 
-# target to generate assembly for a file
-nas/reloc.s:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/reloc.s
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/reloc.s
+# target to preprocess a source file
+nas/reloc.c.i:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/reloc.c.i
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/reloc.c.i
+.PHONY : nas/reloc.c.i
+
+nas/reloc.s: nas/reloc.c.s
+
 .PHONY : nas/reloc.s
 
-# target to build an object file
-nas/symbol.o:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/symbol.o
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/symbol.o
+# target to generate assembly for a file
+nas/reloc.c.s:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/reloc.c.s
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/reloc.c.s
+.PHONY : nas/reloc.c.s
+
+nas/symbol.o: nas/symbol.c.o
+
 .PHONY : nas/symbol.o
 
-# target to preprocess a source file
-nas/symbol.i:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/symbol.i
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/symbol.i
+# target to build an object file
+nas/symbol.c.o:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/symbol.c.o
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/symbol.c.o
+.PHONY : nas/symbol.c.o
+
+nas/symbol.i: nas/symbol.c.i
+
 .PHONY : nas/symbol.i
 
-# target to generate assembly for a file
-nas/symbol.s:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/symbol.s
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/symbol.s
+# target to preprocess a source file
+nas/symbol.c.i:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/symbol.c.i
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/symbol.c.i
+.PHONY : nas/symbol.c.i
+
+nas/symbol.s: nas/symbol.c.s
+
 .PHONY : nas/symbol.s
 
-# target to build an object file
-nas_run/emulator.o:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/emulator.o
+# target to generate assembly for a file
+nas/symbol.c.s:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/nas/symbol.c.s
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas/symbol.c.s
+.PHONY : nas/symbol.c.s
+
+nas_run/emulator.o: nas_run/emulator.c.o
+
 .PHONY : nas_run/emulator.o
 
-# target to preprocess a source file
-nas_run/emulator.i:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/emulator.i
+# target to build an object file
+nas_run/emulator.c.o:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/emulator.c.o
+.PHONY : nas_run/emulator.c.o
+
+nas_run/emulator.i: nas_run/emulator.c.i
+
 .PHONY : nas_run/emulator.i
 
-# target to generate assembly for a file
-nas_run/emulator.s:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/emulator.s
+# target to preprocess a source file
+nas_run/emulator.c.i:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/emulator.c.i
+.PHONY : nas_run/emulator.c.i
+
+nas_run/emulator.s: nas_run/emulator.c.s
+
 .PHONY : nas_run/emulator.s
 
-# target to build an object file
-nas_run/nas_run.o:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_run.o
+# target to generate assembly for a file
+nas_run/emulator.c.s:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/emulator.c.s
+.PHONY : nas_run/emulator.c.s
+
+nas_run/nas_run.o: nas_run/nas_run.c.o
+
 .PHONY : nas_run/nas_run.o
 
-# target to preprocess a source file
-nas_run/nas_run.i:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_run.i
+# target to build an object file
+nas_run/nas_run.c.o:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_run.c.o
+.PHONY : nas_run/nas_run.c.o
+
+nas_run/nas_run.i: nas_run/nas_run.c.i
+
 .PHONY : nas_run/nas_run.i
 
-# target to generate assembly for a file
-nas_run/nas_run.s:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_run.s
+# target to preprocess a source file
+nas_run/nas_run.c.i:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_run.c.i
+.PHONY : nas_run/nas_run.c.i
+
+nas_run/nas_run.s: nas_run/nas_run.c.s
+
 .PHONY : nas_run/nas_run.s
 
-# target to build an object file
-nas_run/nas_util.o:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_util.o
+# target to generate assembly for a file
+nas_run/nas_run.c.s:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_run.c.s
+.PHONY : nas_run/nas_run.c.s
+
+nas_run/nas_util.o: nas_run/nas_util.c.o
+
 .PHONY : nas_run/nas_util.o
 
-# target to preprocess a source file
-nas_run/nas_util.i:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_util.i
+# target to build an object file
+nas_run/nas_util.c.o:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_util.c.o
+.PHONY : nas_run/nas_util.c.o
+
+nas_run/nas_util.i: nas_run/nas_util.c.i
+
 .PHONY : nas_run/nas_util.i
 
-# target to generate assembly for a file
-nas_run/nas_util.s:
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_util.s
+# target to preprocess a source file
+nas_run/nas_util.c.i:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_util.c.i
+.PHONY : nas_run/nas_util.c.i
+
+nas_run/nas_util.s: nas_run/nas_util.c.s
+
 .PHONY : nas_run/nas_util.s
 
-# target to build an object file
-parser/parser.o:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/parser.o
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/parser.o
+# target to generate assembly for a file
+nas_run/nas_util.c.s:
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/nas_run/nas_util.c.s
+.PHONY : nas_run/nas_util.c.s
+
+parser/parser.o: parser/parser.c.o
+
 .PHONY : parser/parser.o
 
-# target to preprocess a source file
-parser/parser.i:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/parser.i
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/parser.i
+# target to build an object file
+parser/parser.c.o:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/parser.c.o
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/parser.c.o
+.PHONY : parser/parser.c.o
+
+parser/parser.i: parser/parser.c.i
+
 .PHONY : parser/parser.i
 
-# target to generate assembly for a file
-parser/parser.s:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/parser.s
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/parser.s
+# target to preprocess a source file
+parser/parser.c.i:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/parser.c.i
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/parser.c.i
+.PHONY : parser/parser.c.i
+
+parser/parser.s: parser/parser.c.s
+
 .PHONY : parser/parser.s
 
-# target to build an object file
-parser/string_util.o:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/string_util.o
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/string_util.o
+# target to generate assembly for a file
+parser/parser.c.s:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/parser.c.s
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/parser.c.s
+.PHONY : parser/parser.c.s
+
+parser/string_util.o: parser/string_util.c.o
+
 .PHONY : parser/string_util.o
 
-# target to preprocess a source file
-parser/string_util.i:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/string_util.i
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/string_util.i
+# target to build an object file
+parser/string_util.c.o:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/string_util.c.o
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/string_util.c.o
+.PHONY : parser/string_util.c.o
+
+parser/string_util.i: parser/string_util.c.i
+
 .PHONY : parser/string_util.i
 
-# target to generate assembly for a file
-parser/string_util.s:
-	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/string_util.s
-	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/string_util.s
+# target to preprocess a source file
+parser/string_util.c.i:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/string_util.c.i
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/string_util.c.i
+.PHONY : parser/string_util.c.i
+
+parser/string_util.s: parser/string_util.c.s
+
 .PHONY : parser/string_util.s
+
+# target to generate assembly for a file
+parser/string_util.c.s:
+	$(MAKE) -f CMakeFiles/nas.dir/build.make CMakeFiles/nas.dir/parser/string_util.c.s
+	$(MAKE) -f CMakeFiles/nas_run.dir/build.make CMakeFiles/nas_run.dir/parser/string_util.c.s
+.PHONY : parser/string_util.c.s
 
 # Help Target
 help:

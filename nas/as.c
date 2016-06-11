@@ -258,7 +258,7 @@ void read_operation(union instruction* instruction_ptr, const char *name_str) {
                     if (strutil_begins_with(name_str, "in")) {
                         instruction_ptr->io_op.io = IO_BIT_INPUT;
                     } else {
-                        instruction_ptr->load_store_op.ls = IO_BIT_OUTPUT;
+                        instruction_ptr->io_op.io = IO_BIT_OUTPUT;
                     }
                 } else if (instruction_ptr->instruction.opcode == OP_MOV) {
                     if (strutil_begins_with(name_str, "shr")) {

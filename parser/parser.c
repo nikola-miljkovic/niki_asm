@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #include "parser.h"
 #include "string_util.h"
@@ -90,6 +91,8 @@ read_label(const char* line, line_content_t* line_content)
 int
 read_directive(const char *line, line_content_t *line_content)
 {
+    CHECK_SECTION(line);
+
     uint32_t position = 0;
     uint32_t last_test_position = 0;
     uint32_t current_func = 0;
@@ -200,7 +203,7 @@ int parse_script(char* file_name, script_content_t *script_content) {
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
-    ssize_t read;
+    size_t read;
     int i = 0;
 
     fp = fopen(file_name, "r");
@@ -208,7 +211,7 @@ int parse_script(char* file_name, script_content_t *script_content) {
         for(;(read = getline(&line, &len, fp)) != -1; i += 1) {
             script_content[i].type = SCRIPT_CONTENT_NONE;
 
-            if (strlen(line) == 0) {
+            if (strlen(line) == 0 || GET_SECTION(line)) {
                 continue;
             }
 
@@ -264,9 +267,9 @@ int parse_script(char* file_name, script_content_t *script_content) {
                 script_content[i].operators = operator;
             }
         }
+        fclose(fp);
     }
 
-    fclose(fp);
     return i;
 }
 

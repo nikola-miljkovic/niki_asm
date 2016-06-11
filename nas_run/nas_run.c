@@ -192,9 +192,9 @@ int main(int argc, char *argv[]) {
     uint32_t memory_location = 0;
     uint32_t start_ivt = 0;
     memory_location += start_ivt + sizeof(uint32_t) * IVT_ENTRIES;
-    uint32_t start_data = 0;
-    uint32_t start_bss = 0;
-    uint32_t start_text = 0;
+    uint32_t start_data = memory_location;
+    uint32_t start_bss = memory_location;
+    uint32_t start_text = memory_location;
 
     script_global_table_t* global_table = create_script_global();
     add_script_global(global_table, ".", memory_location);
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
                 start_bss = memory_location;
                 memory_location += final_context->bss_size;
             } else if (strutil_is_equal(script_content[i].name, SECTION_NAME_DATA)) {
-                start_bss = memory_location;
+                start_data = memory_location;
                 memory_location += final_context->data_size;
             }
 
@@ -396,41 +396,25 @@ int main(int argc, char *argv[]) {
         memcpy(&instr, memory_buffer + registers[AS_REGISTER_PC], sizeof(union instruction));
         registers[AS_REGISTER_PC] += sizeof(union instruction);
 
-        if (kbhit()) {
-            // generate interrupt
-            // put LR and PSW on stack
-            uint32_t interrupt_address;
-            memcpy(&interrupt_address, memory_buffer + start_ivt + sizeof(uint32_t) * 3,
-                   sizeof(uint32_t));
-
-            /* skip serving interrupt */
-            if (interrupt_address == 0) {
-                continue;
-            }
-
-            memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(int32_t));
-            registers[AS_REGISTER_SP] += 4;
-            //memcpy(memory_buffer + registers[AS_REGISTER_SP]++, &registers[AS_REGISTER_LR], sizeof(int32_t));
-
-            registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
-            registers[AS_REGISTER_PC] = interrupt_address;
-        }
-
         if ((uint32_t)time(NULL) - time_interrupt_const > current_time) {
             // generate interrupt and update time
             current_time = (uint32_t) time(NULL);
             uint32_t interrupt_address;
             memcpy(&interrupt_address, memory_buffer + start_ivt + sizeof(uint32_t) * 1,
-                                                sizeof(uint32_t));
+                   sizeof(uint32_t));
 
-            if ((registers[AS_REGISTER_PSW] & 0x40000000) > 0 && interrupt_address > 0) {
-                // put PSW on stack
-                memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(int32_t));
-                registers[AS_REGISTER_SP] += 4;
-                //memcpy(memory_buffer + registers[AS_REGISTER_SP]++, &registers[AS_REGISTER_LR], sizeof(int32_t));
-
-                registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
-                registers[AS_REGISTER_PC] = interrupt_address;
+            if ((registers[AS_REGISTER_PSW] & 0x40000000) > 0) {
+                if (interrupt_address == 0) {
+                    // simulate
+                    printf("%d\n", registers[1]++);
+                } else {
+                    // if we have interrupt routine
+                    // put PSW on stack
+                    memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(int32_t));
+                    registers[AS_REGISTER_SP] += 4;
+                    registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
+                    registers[AS_REGISTER_PC] = interrupt_address;
+                }
             }
         }
 
@@ -523,10 +507,10 @@ int main(int argc, char *argv[]) {
             //case OP_OUT:
                 if(instr.io_op.io == IO_BIT_INPUT) {
                     if (registers[instr.io_op.src] == 0x1000) {
-                        if (!kbhit()) {
-                            registers[AS_REGISTER_PC] -= INSTRUCTION_SIZE;
-                            continue;
-                        }
+                        //if (!kbhit()) {
+                            //registers[AS_REGISTER_PC] -= INSTRUCTION_SIZE;
+                            //continue;
+                        //}
                         io_memory[registers[instr.io_op.src]] = getchar();
                     }
                     registers[instr.io_op.dst] = io_memory[registers[instr.io_op.src]];
@@ -562,7 +546,10 @@ int main(int argc, char *argv[]) {
                 break;
 
             case OP_CALL:
-                memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(uint32_t));
+                if (instr.instruction.cf == 0) {
+                    memcpy(memory_buffer + registers[AS_REGISTER_SP], &registers[AS_REGISTER_PSW], sizeof(uint32_t));
+                    registers[AS_REGISTER_SP] += 4;
+                }
                 registers[AS_REGISTER_LR] = registers[AS_REGISTER_PC];
                 registers[AS_REGISTER_PC] = registers[instr.call_op.dst] + instr.call_op.imm;
                 break;

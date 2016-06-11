@@ -7,6 +7,13 @@
 
 #include <stdint.h>
 
+#define CHECK_SECTION(str) if (strutil_begins_with(str, ".text.")) { \
+    char c[] = ".text";                                              \
+    strcpy(line_content->name, c);                                   \
+    return 0; }
+
+#define GET_SECTION(str) strutil_begins_with(str, ".text.")
+
 // fast equal check
 int32_t strutil_is_equal(const char* str1, const char* str2);
 int32_t strutil_consists_of(const char* str1, const char* part1, const char* part2);

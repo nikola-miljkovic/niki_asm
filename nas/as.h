@@ -125,6 +125,7 @@ const static instruction_info_t instruction_info[] = {
     { "shls",   OP_SHL,     1 },
     { "ldch",   OP_LDCH,    0 },
     { "ldcl",   OP_LDCL,    0 },
+    { "calls",  OP_CALL,    1 },
 };
 
 const static size_t INSTRUCTION_COUNT = sizeof(instruction_info) / sizeof(instruction_info_t);
