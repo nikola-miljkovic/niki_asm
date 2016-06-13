@@ -7,6 +7,7 @@ faktorijel:
         muls r5, r0				; rezultat je u r5
         sub  r0, 1 				; dekrementiraj
         cmps r0, 1
+        out r5, r6
 		callne r2, faktorijel			; pozovi opet ovu funkciju
         ldr lr, sp, 0, predec ; skini lr sa steka
 		mov pc, lr				; vrati se van rekurzije
